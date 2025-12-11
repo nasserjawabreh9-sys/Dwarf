@@ -1,12 +1,46 @@
-from fastapi import FastAPI
-from .routes import config as config_routes
-from .routes import chat as chat_routes
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+from starlette.requests import Request
 
-app = FastAPI(title="STATION Backend", version="1.0.0")
 
-@app.get("/health")
-async def health():
-    return {"status": "ok", "service": "station-backend"}
+async def health(request: Request):
+    return JSONResponse(
+        {
+            "status": "ok",
+            "runtime": "termux",
+            "service": "station-backend",
+        }
+    )
 
-app.include_router(config_routes.router)
-app.include_router(chat_routes.router)
+
+async def config(request: Request):
+    return JSONResponse(
+        {
+            "message": "Station backend (Starlette) is alive.",
+            "frontend_hint": "Use /echo to test POST.",
+        }
+    )
+
+
+async def echo(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {"error": "invalid_json"}
+
+    return JSONResponse(
+        {
+            "received": data,
+            "note": "This is a minimal Starlette echo endpoint.",
+        }
+    )
+
+
+routes = [
+    Route("/health", health, methods=["GET"]),
+    Route("/config", config, methods=["GET"]),
+    Route("/echo", echo, methods=["POST"]),
+]
+
+app = Starlette(debug=True, routes=routes)
