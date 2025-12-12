@@ -1,128 +1,144 @@
 #!/data/data/com.termux/files/usr/bin/bash
-set -e
+set -euo pipefail
 
 ROOT="$HOME/station_root"
-BACKEND_DIR="$ROOT/backend"
-FRONTEND_DIR="$ROOT/frontend"
 ENV_FILE="$HOME/station_env.sh"
 
-echo ">>> [STATION] Starting full Station (backend + frontend)..."
+BACKEND_PORT="${BACKEND_PORT:-8000}"
+FRONTEND_PORT_BASE="${FRONTEND_PORT_BASE:-5173}"
+FRONTEND_PORT_MAX_TRIES="${FRONTEND_PORT_MAX_TRIES:-20}"
 
-# Load environment (API keys, etc.) if exists
-if [ -f "$ENV_FILE" ]; then
-  . "$ENV_FILE"
-  echo ">>> [STATION] Environment loaded from $ENV_FILE"
-else
-  echo ">>> [STATION] WARNING: $ENV_FILE not found, continuing without extra env."
-fi
+log() { printf ">>> [STATION] %s\n" "$*"; }
 
-# Kill any old processes
-pkill -f "uvicorn app.main:app" 2>/dev/null || true
-pkill -f "node.*vite" 2>/dev/null || true
+is_port_busy() {
+  local p="$1"
+  # Try ss (preferred), fallback to netstat if available
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltn | awk '{print $4}' | grep -qE "[:.]${p}$"
+  elif command -v netstat >/dev/null 2>&1; then
+    netstat -ltn 2>/dev/null | awk '{print $4}' | grep -qE "[:.]${p}$"
+  else
+    # Worst-case: assume not busy
+    return 1
+  fi
+}
 
-# ----- Backend -----
-cd "$BACKEND_DIR"
+pick_free_port() {
+  local start="$1"
+  local tries="$2"
+  local p="$start"
+  local i=0
+  while [ "$i" -lt "$tries" ]; do
+    if is_port_busy "$p"; then
+      p=$((p+1))
+      i=$((i+1))
+      continue
+    fi
+    echo "$p"
+    return 0
+  done
+  return 1
+}
 
-if [ ! -d ".venv" ]; then
-  echo ">>> [STATION] ERROR: .venv not found in backend. Please create it first."
-  echo "    Example:"
-  echo "    cd $BACKEND_DIR"
-  echo "    python -m venv .venv"
-  echo "    source .venv/bin/activate"
-  echo "    pip install -r requirements.txt"
-  exit 1
-fi
+start_backend() {
+  log "Starting backend on port ${BACKEND_PORT}..."
+  cd "$ROOT/backend"
 
-# shellcheck disable=SC1091
-source .venv/bin/activate
+  if [ -f ".venv/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source .venv/bin/activate
+  fi
 
-echo ">>> [STATION] Starting backend on port 8000..."
-nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > "$ROOT/backend.log" 2>&1 &
+  mkdir -p "$ROOT/station_logs"
 
-# Small wait so backend can boot
-sleep 2
+  # Stop old backend if pid exists and running
+  if [ -f "$ROOT/station_meta/dynamo/backend.pid" ]; then
+    oldpid="$(cat "$ROOT/station_meta/dynamo/backend.pid" 2>/dev/null || true)"
+    if [ -n "${oldpid:-}" ] && kill -0 "$oldpid" 2>/dev/null; then
+      log "Stopping old backend pid=${oldpid}"
+      kill "$oldpid" 2>/dev/null || true
+      sleep 0.5
+    fi
+  fi
 
-# ----- Frontend -----
-cd "$FRONTEND_DIR"
+  nohup uvicorn app.main:app --host 0.0.0.0 --port "$BACKEND_PORT" \
+    > "$ROOT/station_logs/backend.log" 2>&1 &
 
-if [ ! -d "node_modules" ]; then
-  echo ">>> [STATION] Installing frontend dependencies (npm install)..."
-  npm install
-fi
+  echo $! > "$ROOT/station_meta/dynamo/backend.pid"
+}
 
-echo ">>> [STATION] Starting frontend (Vite) on port 5173..."
-nohup npm run dev -- --host 0.0.0.0 --port 5173 > "$ROOT/frontend.log" 2>&1 &
+start_frontend() {
+  local port
+  port="$(pick_free_port "$FRONTEND_PORT_BASE" "$FRONTEND_PORT_MAX_TRIES")" || {
+    log "ERROR: could not find a free frontend port starting from ${FRONTEND_PORT_BASE}"
+    exit 2
+  }
 
-echo ">>> [STATION] All services started."
-echo ">>> Backend health:  curl http://127.0.0.1:8000/health"
-echo ">>> Frontend URL:    http://127.0.0.1:5173/"
-echo ">>> To open in browser on Android:"
-echo "termux-open-url http://127.0.0.1:5173/"
-echo ">>> Logs:"
-echo "tail -f $ROOT/backend.log"
-echo "tail -f $ROOT/frontend.log"
-#!/data/data/com.termux/files/usr/bin/bash
-set -e
+  log "Starting frontend (Vite) on port ${port}..."
+  cd "$ROOT/frontend"
 
-ROOT="$HOME/station_root"
-BACKEND_DIR="$ROOT/backend"
-FRONTEND_DIR="$ROOT/frontend"
-ENV_FILE="$HOME/station_env.sh"
+  mkdir -p "$ROOT/station_logs"
 
-echo ">>> [STATION] Starting full Station (backend + frontend)..."
+  # Stop old frontend if pid exists and running
+  if [ -f "$ROOT/station_meta/dynamo/frontend.pid" ]; then
+    oldpid="$(cat "$ROOT/station_meta/dynamo/frontend.pid" 2>/dev/null || true)"
+    if [ -n "${oldpid:-}" ] && kill -0 "$oldpid" 2>/dev/null; then
+      log "Stopping old frontend pid=${oldpid}"
+      kill "$oldpid" 2>/dev/null || true
+      sleep 0.5
+    fi
+  fi
 
-# ===== 1) Load environment (API keys, etc.) =====
-if [ -f "$ENV_FILE" ]; then
-  . "$ENV_FILE"
-  echo ">>> [STATION] Environment loaded from $ENV_FILE"
-else
-  echo ">>> [STATION] WARNING: $ENV_FILE not found, continuing without extra env."
-fi
+  nohup npm run dev -- --host 0.0.0.0 --port "$port" \
+    > "$ROOT/station_logs/frontend.log" 2>&1 &
 
-# ===== 2) Kill any old Station processes =====
-pkill -f "uvicorn app.main:app" 2>/dev/null || true
-pkill -f "node.*vite" 2>/dev/null || true
+  echo $! > "$ROOT/station_meta/dynamo/frontend.pid"
 
-# ===== 3) Backend (Starlette + Uvicorn) =====
-cd "$BACKEND_DIR"
+  # Save the chosen port for other scripts/tools
+  mkdir -p "$ROOT/station_meta/bindings"
+  cat > "$ROOT/station_meta/bindings/runtime_ports.json" << JSON
+{
+  "backend_port": ${BACKEND_PORT},
+  "frontend_port": ${port},
+  "ts": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSON
 
-if [ ! -d ".venv" ]; then
-  echo ">>> [STATION] Backend venv not found, creating and installing deps..."
-  python -m venv .venv
-  # shellcheck disable=SC1091
-  source .venv/bin/activate
-  pip install --upgrade pip
-  pip install -r requirements.txt
-else
-  echo ">>> [STATION] Activating backend venv..."
-  # shellcheck disable=SC1091
-  source .venv/bin/activate
-fi
+  echo "$port"
+}
 
-echo ">>> [STATION] Starting backend on port 8000..."
-nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > "$ROOT/backend.log" 2>&1 &
+main() {
+  log "Starting full Station (backend + frontend)..."
 
-# أعطِ الباك إند ثانية يشتغل
-sleep 2
+  if [ -f "$ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    log "Environment loaded from $ENV_FILE"
+  else
+    log "WARNING: $ENV_FILE not found. Continuing without it."
+  fi
 
-# ===== 4) Frontend (Vite React) =====
-cd "$FRONTEND_DIR"
+  cd "$ROOT"
+  mkdir -p station_meta/{dynamo,bindings} station_logs
 
-if [ ! -d "node_modules" ]; then
-  echo ">>> [STATION] node_modules not found, running npm install (first time only)..."
-  npm install
-fi
+  start_backend
 
-echo ">>> [STATION] Starting frontend (Vite) on port 5173..."
-nohup npm run dev -- --host 0.0.0.0 --port 5173 > "$ROOT/frontend.log" 2>&1 &
+  # Quick backend health check (best-effort)
+  sleep 0.7
+  if command -v curl >/dev/null 2>&1; then
+    log "Backend health: curl http://127.0.0.1:${BACKEND_PORT}/health"
+  fi
 
-# ===== 5) Summary =====
-echo ">>> [STATION] All services started."
-echo ">>> Backend health:  curl http://127.0.0.1:8000/health"
-echo ">>> Frontend URL:    http://127.0.0.1:5173/"
-echo ">>> To open in browser on Android:"
-echo "termux-open-url http://127.0.0.1:5173/"
-echo ">>> Logs:"
-echo "tail -f $ROOT/backend.log"
-echo "tail -f $ROOT/frontend.log"
+  fport="$(start_frontend)"
 
+  log "All services started."
+  log "Backend URL:   http://127.0.0.1:${BACKEND_PORT}/"
+  log "Frontend URL:  http://127.0.0.1:${fport}/"
+  log "Open in browser:"
+  echo "termux-open-url http://127.0.0.1:${fport}/"
+  log "Logs:"
+  echo "tail -f $ROOT/station_logs/backend.log"
+  echo "tail -f $ROOT/station_logs/frontend.log"
+}
+
+main "$@"

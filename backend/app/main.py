@@ -1,6 +1,7 @@
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
+from app.routes import uui_config
 from starlette.requests import Request
 
 
@@ -38,6 +39,8 @@ async def echo(request: Request):
 
 
 routes = [
+    Route('/api/config/uui', uui_config.get_config, methods=['GET']),
+    Route('/api/config/uui', uui_config.set_config, methods=['POST']),
     Route("/health", health, methods=["GET"]),
     Route("/config", config, methods=["GET"]),
     Route("/echo", echo, methods=["POST"]),

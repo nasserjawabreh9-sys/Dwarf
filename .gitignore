@@ -32,3 +32,23 @@ station_meta/dynamo/*.pid
 station_logs/
 backend.log
 frontend.log
+
+### STATION RUNTIME (ignore)
+station_logs/
+backend.log
+frontend.log
+station_meta/locks/
+station_meta/dynamo/backend.pid
+station_meta/stage_reports/*.json
+station_meta/dynamo/events.jsonl
+station_meta/queue/tasks.jsonl
+
+# Python
+__pycache__/
+*.pyc
+backend/.venv/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
