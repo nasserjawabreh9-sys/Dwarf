@@ -4,7 +4,9 @@ from starlette.routing import Route
 
 from app.loop_queue import submit, list_tail
 from app.loop_worker import run_once
+from app.guards import require_room
 
+@require_room('core')
 async def post_task(request: Request):
   body = {}
   try:
@@ -22,6 +24,7 @@ async def get_tasks(request: Request):
   items = list_tail(limit)
   return JSONResponse({"ok": True, "items": items})
 
+@require_room('core')
 async def run_once_api(request: Request):
   res = run_once()
   return JSONResponse({"ok": True, "run": res})

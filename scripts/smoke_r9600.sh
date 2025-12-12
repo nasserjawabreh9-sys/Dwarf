@@ -47,7 +47,7 @@ fi
 # kill any running on port
 pkill -f "uvicorn $MOD" >/dev/null 2>&1 || true
 
-nohup python -m uvicorn "$MOD" --host 0.0.0.0 --port "$PORT" > /tmp/r9600_backend.log 2>&1 &
+nohup python -m uvicorn "$MOD" --host 0.0.0.0 --port "$PORT" > station_meta/logs/r9600_backend.log 2>&1 &
 PID=$!
 sleep 2
 
@@ -73,6 +73,6 @@ if [[ "$OK" -eq 1 ]]; then
   exit 0
 else
   echo "SMOKE PARTIAL (no health endpoint detected). Check log:"
-  tail -n 80 /tmp/r9600_backend.log || true
+  tail -n 80 station_meta/logs/r9600_backend.log || true
   exit 0
 fi

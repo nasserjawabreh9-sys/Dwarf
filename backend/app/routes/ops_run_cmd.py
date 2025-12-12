@@ -3,6 +3,7 @@ from starlette.responses import JSONResponse
 from starlette.requests import Request
 from starlette.routing import Route
 from app.settings_store import expected_edit_key
+from app.guards import require_room
 
 ALLOWED = {
   "pwd": ["pwd"],
@@ -15,6 +16,7 @@ def _auth_ok(request: Request) -> bool:
   got = (request.headers.get("X-Edit-Key") or "").strip()
   return got != "" and got == expected_edit_key()
 
+@require_room('ops')
 async def run_cmd(request: Request):
   if not _auth_ok(request):
     return JSONResponse({"ok": False, "error": "forbidden"}, status_code=403)
