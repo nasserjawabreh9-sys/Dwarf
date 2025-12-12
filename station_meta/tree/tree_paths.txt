@@ -151,10 +151,13 @@ station_meta/queue
 station_meta/queue/tasks.jsonl
 station_meta/stage_reports
 station_meta/stage_reports/TRIAL-1_R1000_1765506487.json
+station_meta/stage_reports/TRIAL-1_R1000_1765514295.json
 station_meta/stage_reports/TRIAL-1_R2000_1765506076.json
 station_meta/stage_reports/TRIAL-1_R2000_1765506077.json
 station_meta/stage_reports/TRIAL-1_R2000_1765506129.json
 station_meta/stage_reports/TRIAL-1_R2000_1765506130.json
+station_meta/stage_reports/TRIAL-1_R2000_1765514319.json
+station_meta/stage_reports/TRIAL-1_R2000_1765514344.json
 station_meta/stage_reports/TRIAL-2_R1000_1765507909.json
 station_meta/tree
 station_meta/tree/broadcast.txt
