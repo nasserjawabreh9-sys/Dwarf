@@ -52,3 +52,11 @@ backend/.venv/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+
+# --- Station runtime sensitive / volatile ---
+station_meta/settings/runtime_keys.json
+station_meta/queue/*.pid
+station_meta/queue/locks/
+station_meta/logs/
+backend.log
+frontend.log
