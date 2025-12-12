@@ -25,3 +25,10 @@ workspace/scripts/
 Thumbs.db
 .vscode/
 .idea/
+
+# Station runtime
+station_meta/locks/
+station_meta/dynamo/*.pid
+station_logs/
+backend.log
+frontend.log
