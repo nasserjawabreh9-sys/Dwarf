@@ -48,6 +48,14 @@ export default function Settings() {
   useEffect(() => {
     localStorage.setItem(LS_KEY, JSON.stringify(keys));
   }, [keys]);
+  async function callApi(path: string, opts: RequestInit) {
+    const res = await fetch(path, opts);
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(j?.error || String(res.status));
+    return j;
+  }
+
+
 
   const fields = useMemo(
     () =>
@@ -238,7 +246,185 @@ export default function Settings() {
           whiteSpace: "pre-wrap",
         }}
       >
-        {gitOut || "Output will appear here."}
+        {gitOut || "Output will appear here.
+      {/* SENSES_AND_HOOKS_PANEL__R9200 */
+      {/* TERMUX_CONSOLE_PANEL__R9800 */}
+}
+      <div className="mt-6 rounded-xl border p-4">
+        <div className="text-lg font-semibold mb-2">Console (Termux-like)</div>
+        <div className="text-sm opacity-80 mb-2">Calls backend: GET /api/ops/allowed, POST /api/ops/exec (Edit Key required)</div>
+
+        <div className="flex flex-wrap gap-2">
+          <button className="rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const j = await callApi("/api/ops/allowed", { method:"GET" });
+                setStatus("OPS allowed: " + JSON.stringify(j));
+              }catch(e:any){ setStatus("OPS allowed FAIL: " + (e?.message||"unknown")); }
+            }}
+          >Allowed</button>
+
+          <button className="rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const j = await callApi("/api/ops/exec", {
+                  method:"POST",
+                  headers:{ "Content-Type":"application/json", "X-Edit-Key": keys.edit_mode_key || "" },
+                  body: JSON.stringify({ name:"git_status" })
+                });
+                setStatus("OPS git_status: " + JSON.stringify(j.entry));
+              }catch(e:any){ setStatus("OPS exec FAIL: " + (e?.message||"unknown")); }
+            }}
+          >git status</button>
+
+          <button className="rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const j = await callApi("/api/ops/exec", {
+                  method:"POST",
+                  headers:{ "Content-Type":"application/json", "X-Edit-Key": keys.edit_mode_key || "" },
+                  body: JSON.stringify({ name:"git_log" })
+                });
+                setStatus("OPS git_log: " + (j.entry.stdout || ""));
+              }catch(e:any){ setStatus("OPS exec FAIL: " + (e?.message||"unknown")); }
+            }}
+          >git log</button>
+        </div>
+      </div>
+}
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border p-4">
+          <div className="text-lg font-semibold mb-2">Senses (Backend)</div>
+
+          <div className="text-sm opacity-80 mb-2">POST /api/senses/text</div>
+          <div className="flex gap-2">
+            <input className="w-full rounded border px-2 py-1"
+              placeholder='{"text":"hello"}'
+              value={(window as any).__sense_text_payload || `{"text":"hello"}`}
+              onChange={(e) => ((window as any).__sense_text_payload = e.target.value)}
+            />
+            <button className="rounded bg-black text-white px-3 py-1"
+              onClick={async () => {
+                try{
+                  const payload = JSON.parse((window as any).__sense_text_payload || `{"text":"hello"}`);
+                  const j = await callApi("/api/senses/text", {
+                    method:"POST",
+                    headers:{ "Content-Type":"application/json" },
+                    body: JSON.stringify(payload)
+                  });
+                  setStatus("SENSE text OK: " + JSON.stringify(j));
+                }catch(e:any){ setStatus("SENSE text FAIL: " + (e?.message||"unknown")); }
+              }}
+            >Send</button>
+          </div>
+
+          <div className="mt-4 text-sm opacity-80 mb-2">POST /api/senses/audio (multipart field: audio)</div>
+          <input id="senseAudio" type="file" accept="audio/*" className="block w-full text-sm"/>
+          <button className="mt-2 rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const el = document.getElementById("senseAudio") as HTMLInputElement;
+                const f = el?.files?.[0];
+                const fd = new FormData();
+                if (f) fd.append("audio", f);
+                const res = await fetch("/api/senses/audio", { method:"POST", body: fd });
+                const j = await res.json().catch(()=>({}));
+                if(!res.ok) throw new Error(j?.error || String(res.status));
+                setStatus("SENSE audio OK: " + JSON.stringify(j));
+              }catch(e:any){ setStatus("SENSE audio FAIL: " + (e?.message||"unknown")); }
+            }}
+          >Upload Audio</button>
+
+          <div className="mt-4 text-sm opacity-80 mb-2">POST /api/senses/image (multipart field: image)</div>
+          <input id="senseImage" type="file" accept="image/*" className="block w-full text-sm"/>
+          <button className="mt-2 rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const el = document.getElementById("senseImage") as HTMLInputElement;
+                const f = el?.files?.[0];
+                const fd = new FormData();
+                if (f) fd.append("image", f);
+                const res = await fetch("/api/senses/image", { method:"POST", body: fd });
+                const j = await res.json().catch(()=>({}));
+                if(!res.ok) throw new Error(j?.error || String(res.status));
+                setStatus("SENSE image OK: " + JSON.stringify(j));
+              }catch(e:any){ setStatus("SENSE image FAIL: " + (e?.message||"unknown")); }
+            }}
+          >Upload Image</button>
+
+          <div className="mt-4 text-sm opacity-80 mb-2">POST /api/senses/video (multipart field: video)</div>
+          <input id="senseVideo" type="file" accept="video/*" className="block w-full text-sm"/>
+          <button className="mt-2 rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const el = document.getElementById("senseVideo") as HTMLInputElement;
+                const f = el?.files?.[0];
+                const fd = new FormData();
+                if (f) fd.append("video", f);
+                const res = await fetch("/api/senses/video", { method:"POST", body: fd });
+                const j = await res.json().catch(()=>({}));
+                if(!res.ok) throw new Error(j?.error || String(res.status));
+                setStatus("SENSE video OK: " + JSON.stringify(j));
+              }catch(e:any){ setStatus("SENSE video FAIL: " + (e?.message||"unknown")); }
+            }}
+          >Upload Video</button>
+        </div>
+
+        <div className="rounded-xl border p-4">
+          <div className="text-lg font-semibold mb-2">Hooks (Protected by Edit Key)</div>
+          <div className="text-sm opacity-80 mb-2">Headers: X-Edit-Key = Edit Mode Key</div>
+
+          <div className="text-sm opacity-80 mb-2">POST /api/hooks/email</div>
+          <button className="rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const payload = { to:"test@example.com", subject:"Station Hook Test", body:"Hello from Station" };
+                const j = await callApi("/api/hooks/email", {
+                  method:"POST",
+                  headers:{ "Content-Type":"application/json", "X-Edit-Key": keys.edit_mode_key || "" },
+                  body: JSON.stringify(payload)
+                });
+                setStatus("HOOK email OK: " + JSON.stringify(j));
+              }catch(e:any){ setStatus("HOOK email FAIL: " + (e?.message||"unknown")); }
+            }}
+          >Test Email Hook</button>
+
+          <div className="mt-4 text-sm opacity-80 mb-2">POST /api/hooks/whatsapp</div>
+          <button className="rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const payload = { to:"+0000000000", message:"Hello from Station WhatsApp Hook" };
+                const j = await callApi("/api/hooks/whatsapp", {
+                  method:"POST",
+                  headers:{ "Content-Type":"application/json", "X-Edit-Key": keys.edit_mode_key || "" },
+                  body: JSON.stringify(payload)
+                });
+                setStatus("HOOK whatsapp OK: " + JSON.stringify(j));
+              }catch(e:any){ setStatus("HOOK whatsapp FAIL: " + (e?.message||"unknown")); }
+            }}
+          >Test WhatsApp Hook</button>
+
+          <div className="mt-4 text-sm opacity-80 mb-2">POST /api/hooks/webhook (uses keys.webhooks_url)</div>
+          <button className="rounded bg-black text-white px-3 py-1"
+            onClick={async () => {
+              try{
+                const payload = { event:"station_webhook_test", ts: new Date().toISOString() };
+                const j = await callApi("/api/hooks/webhook", {
+                  method:"POST",
+                  headers:{ "Content-Type":"application/json", "X-Edit-Key": keys.edit_mode_key || "" },
+                  body: JSON.stringify(payload)
+                });
+                setStatus("HOOK webhook OK: " + JSON.stringify(j));
+              }catch(e:any){ setStatus("HOOK webhook FAIL: " + (e?.message||"unknown")); }
+            }}
+          >Fire Webhook</button>
+
+          <div className="mt-4 text-xs opacity-70">
+            Notes: Email/WhatsApp hooks are stubs الآن (ack فقط). Webhook فعلي ويرسل لـ keys.webhooks_url.
+          </div>
+        </div>
+      </div>
+"}
       </pre>
     </div>
   );
