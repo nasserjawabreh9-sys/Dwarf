@@ -63,3 +63,4 @@ frontend.log
 station_env.sh
 .env
 frontend/.env*
+nohup.out
