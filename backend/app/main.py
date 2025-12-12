@@ -1,6 +1,7 @@
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
+from app.routes import ops_openai_test
 from app.routes import ops_git
 from app.routes import uui_config
 from starlette.requests import Request
@@ -40,6 +41,7 @@ async def echo(request: Request):
 
 
 routes = [
+    Route('/api/ops/openai/test', ops_openai_test.openai_test, methods=['POST']),
     Route('/api/ops/git/status', ops_git.git_status, methods=['GET']),
     Route('/api/ops/git/push', ops_git.git_push, methods=['POST']),
     Route('/api/config/uui', uui_config.get_config, methods=['GET']),

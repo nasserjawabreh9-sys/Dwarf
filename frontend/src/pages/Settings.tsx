@@ -34,6 +34,7 @@ export default function Settings() {
   const [keys, setKeys] = useState<Keys>(emptyKeys);
   const [status, setStatus] = useState<string>("");
   const [gitOut, setGitOut] = useState<string>("");
+  const [openaiOut, setOpenaiOut] = useState<string>("");
 
   useEffect(() => {
     const raw = localStorage.getItem(LS_KEY);
@@ -104,6 +105,31 @@ export default function Settings() {
     }
   }
 
+  async function openaiTest() {
+    setStatus('Testing OpenAI key...');
+    setOpenaiOut('');
+    try {
+      const res = await fetch('/api/ops/openai/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Edit-Key': keys.edit_mode_key || ''
+        },
+        body: JSON.stringify({ api_key: keys.openai_api_key || '' })
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.error || String(res.status));
+      setOpenaiOut(
+        'OK\nmodels_count=' + String(j.models_count) +
+        '\nmodels_sample=\n' + (Array.isArray(j.models_sample) ? j.models_sample.join('\n') : '')
+      );
+      setStatus('OpenAI test OK.');
+    } catch (e: any) {
+      setStatus('OpenAI test failed: ' + (e?.message || 'unknown'));
+      setOpenaiOut(String(e?.message || 'unknown'));
+    }
+  }
+
   async function gitPush() {
     setStatus("Stage + Commit + Push...");
     setGitOut("");
@@ -122,6 +148,25 @@ export default function Settings() {
       setStatus(j.ok ? "Push OK." : "Push finished with rc=" + j.rc);
     } catch (e: any) {
       setStatus("Push failed: " + (e?.message || "unknown"));
+    }
+  }
+
+
+  async function loadFromBackend() {
+    setStatus("Loading from backend...");
+    setGitOut("");
+    try {
+      const res = await fetch("/api/config/uui");
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.error || String(res.status));
+      if (j?.keys) {
+        setKeys((prev) => ({ ...prev, ...j.keys }));
+        setStatus("Loaded from backend OK.");
+      } else {
+        setStatus("No keys returned from backend.");
+      }
+    } catch (e:any) {
+      setStatus("Load failed: " + (e?.message || "unknown"));
     }
   }
 
@@ -170,6 +215,13 @@ export default function Settings() {
           style={{ padding: "10px 14px", borderRadius: 10, border: "1px solid #444", background: "#1b1b1b", color: "#eee" }}
         >
           Stage + Commit + Push (Backend)
+        </button>
+
+        <button
+          onClick={loadFromBackend}
+          style={{ padding: "10px 14px", borderRadius: 10, border: "1px solid #444", background: "#1b1b1b", color: "#eee" }}
+        >
+          Load from Backend
         </button>
 
         <span style={{ opacity: 0.85, alignSelf: "center" }}>{status}</span>
