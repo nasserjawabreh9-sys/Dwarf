@@ -1,6 +1,7 @@
 .
 .gitignore
 README.md
+README_RUNBOOK.md
 backend
 backend.log
 backend/SH
@@ -12,6 +13,17 @@ backend/app/__pycache__
 backend/app/__pycache__/__init__.cpython-312.pyc
 backend/app/__pycache__/main.cpython-312.pyc
 backend/app/main.py
+backend/app/ro
+backend/app/routes
+backend/app/routes/__init__.py
+backend/app/routes/__pycache__
+backend/app/routes/__pycache__/__init__.cpython-312.pyc
+backend/app/routes/__pycache__/ops_git.cpython-312.pyc
+backend/app/routes/__pycache__/ops_openai_test.cpython-312.pyc
+backend/app/routes/__pycache__/uui_config.cpython-312.pyc
+backend/app/routes/ops_git.py
+backend/app/routes/ops_openai_test.py
+backend/app/routes/uui_config.py
 backend/app_old_20251211_233357
 backend/app_old_20251211_233357/__init__.py
 backend/app_old_20251211_233357/__pycache__
@@ -71,6 +83,8 @@ frontend/src/assets/react.svg
 frontend/src/components
 frontend/src/index.css
 frontend/src/main.tsx
+frontend/src/pages
+frontend/src/pages/Settings.tsx
 frontend/station_loop_v3_frontend.sh
 frontend/tsconfig.app.json
 frontend/tsconfig.json
@@ -79,8 +93,13 @@ frontend/vite.config.ts
 run_station.sh
 scripts
 scripts/ops
+scripts/ops/discover_layout.sh
 scripts/ops/dynamo.py
+scripts/ops/finish_backend_uui_ops.sh
+scripts/ops/finish_frontend_settings_actions.sh
+scripts/ops/hardening.sh
 scripts/ops/patch_repo_hygiene.sh
+scripts/ops/self_test.sh
 scripts/ops/st.sh
 scripts/ops/stage_commit_push.sh
 scripts/station_bootstrap_backend.sh
@@ -116,6 +135,7 @@ station_meta
 station_meta/bindings
 station_meta/bindings/bindings.json
 station_meta/bindings/runtime_ports.json
+station_meta/bindings/uui_config.json
 station_meta/dynamo
 station_meta/dynamo/backend.pid
 station_meta/dynamo/dynamo_config.json
@@ -124,6 +144,7 @@ station_meta/dynamo/frontend.pid
 station_meta/locks
 station_meta/locks/bindings.lock.json
 station_meta/locks/env.lock.json
+station_meta/locks/hardening.env
 station_meta/locks/stage.lock.json
 station_meta/locks/tree.lock.json
 station_meta/queue
@@ -134,6 +155,7 @@ station_meta/stage_reports/TRIAL-1_R2000_1765506076.json
 station_meta/stage_reports/TRIAL-1_R2000_1765506077.json
 station_meta/stage_reports/TRIAL-1_R2000_1765506129.json
 station_meta/stage_reports/TRIAL-1_R2000_1765506130.json
+station_meta/stage_reports/TRIAL-2_R1000_1765507909.json
 station_meta/tree
 station_meta/tree/broadcast.txt
 station_meta/tree/tree_paths.txt
