@@ -1,5 +1,7 @@
 import Settings from './pages/Settings';
 import { useEffect, useState } from "react";
+import { Link, Routes, Route } from "react-router-dom";
+
 import {
   apiHealth,
   apiEcho,
@@ -368,3 +370,20 @@ function App() {
 }
 
 export default App;
+
+
+export default function App() {
+  return (
+    <div style={{ padding: 12 }}>
+      <nav style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+        <Link to="/" style={{ color: "#ddd" }}>Home</Link>
+        <Link to="/settings" style={{ color: "#ddd" }}>Settings</Link>
+      </nav>
+
+      <Routes>
+        <Route path="/" element={<div>Home</div>} />
+        <Route path="/settings" element={<Settings />} />
+      </Routes>
+    </div>
+  );
+}
