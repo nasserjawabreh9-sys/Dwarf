@@ -162,6 +162,7 @@ station_meta/guards/policy.json
 station_meta/integrate/integrate_2025-12-12T05:12:43Z.txt
 station_meta/integrate/integrate_2025-12-12T05:16:18Z.txt
 station_meta/integrate/integrate_2025-12-12T05:19:43Z.txt
+station_meta/integrate/integrate_2025-12-12T05:53:11Z.txt
 station_meta/queue/tasks.jsonl
 station_meta/rooms/R1_TREE_AUTHORITY/bindings.json
 station_meta/rooms/R1_TREE_AUTHORITY/tree_paths.txt
@@ -174,6 +175,11 @@ station_meta/rooms/R4_FRONTEND/tree_paths.txt
 station_meta/rooms/R5_OPS/bindings.json
 station_meta/rooms/R5_OPS/tree_paths.txt
 station_meta/rooms/last_broadcast.txt
+station_meta/rooms/room_01_tree_authority.json
+station_meta/rooms/room_02_guards.json
+station_meta/rooms/room_03_dynamo_ops.json
+station_meta/rooms/room_04_backend.json
+station_meta/rooms/room_05_frontend.json
 station_meta/rooms/rooms.json
 station_meta/stage_reports/PROD_R1000_1765514358.json
 station_meta/stage_reports/PROD_R1000_1765516018.json
