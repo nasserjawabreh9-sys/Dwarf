@@ -1,6 +1,6 @@
 STATION TREE BROADCAST
-ts=2025-12-12T05:06:56Z
-paths_count=230
+ts=2025-12-12T05:12:40Z
+paths_count=235
 head:
 .
 .gitignore
@@ -10,6 +10,7 @@ R1300_rooms_pipelines_tags_status.sh
 R1400_room_runner_concurrency_merge_report.sh
 R1500_guards_autodiff_queue_stopworld.sh
 R1600_concurrency_rooms_mergegate.sh
+R1700_rooms_pipelines_broadcast_integrate.sh
 README.md
 README_RUNBOOK.md
 backend
@@ -21,4 +22,3 @@ backend/app
 backend/app/__init__.py
 backend/app/__pycache__
 backend/app/__pycache__/__init__.cpython-312.pyc
-backend/app/__pycache__/main.cpython-312.pyc

@@ -6,6 +6,7 @@ R1300_rooms_pipelines_tags_status.sh
 R1400_room_runner_concurrency_merge_report.sh
 R1500_guards_autodiff_queue_stopworld.sh
 R1600_concurrency_rooms_mergegate.sh
+R1700_rooms_pipelines_broadcast_integrate.sh
 README.md
 README_RUNBOOK.md
 backend
@@ -113,6 +114,7 @@ scripts/ops/dynamo.py
 scripts/ops/finish_backend_uui_ops.sh
 scripts/ops/finish_frontend_settings_actions.sh
 scripts/ops/hardening.sh
+scripts/ops/integrate_report.sh
 scripts/ops/lock_cleaner.py
 scripts/ops/merge_gate.sh
 scripts/ops/patch_repo_hygiene.sh
@@ -129,6 +131,7 @@ scripts/rooms/dispatch.sh
 scripts/rooms/dispatcher.py
 scripts/rooms/room_runner.py
 scripts/rooms/room_worker.sh
+scripts/rooms/rooms_broadcast.sh
 scripts/station_bootstrap_backend.sh
 scripts/station_bootstrap_frontend.sh
 scripts/station_build.sh
@@ -185,6 +188,7 @@ station_meta/dynamo/frontend.pid
 station_meta/env
 station_meta/guards
 station_meta/guards/last_tree_stamp.json
+station_meta/integrate
 station_meta/locks
 station_meta/locks/bindings.lock.json
 station_meta/locks/env.lock.json
@@ -198,6 +202,7 @@ station_meta/rooms
 station_meta/rooms/rooms.json
 station_meta/stage_reports
 station_meta/stage_reports/PROD_R1000_1765514358.json
+station_meta/stage_reports/PROD_R1000_1765516018.json
 station_meta/stage_reports/TRIAL-1_R1000_1765506487.json
 station_meta/stage_reports/TRIAL-1_R1000_1765514295.json
 station_meta/stage_reports/TRIAL-1_R2000_1765506076.json
