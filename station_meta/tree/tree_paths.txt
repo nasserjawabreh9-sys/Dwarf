@@ -1,6 +1,7 @@
 .
 .gitignore
 R1100_bootstrap_arch_rooms_guards.sh
+R1200_enable_guards_queue_concurrency.sh
 README.md
 README_RUNBOOK.md
 backend
@@ -105,11 +106,13 @@ scripts/ops/finish_backend_uui_ops.sh
 scripts/ops/finish_frontend_settings_actions.sh
 scripts/ops/hardening.sh
 scripts/ops/patch_repo_hygiene.sh
+scripts/ops/run_guards.sh
 scripts/ops/self_test.sh
 scripts/ops/st.sh
 scripts/ops/stage_commit_push.sh
 scripts/rooms
 scripts/rooms/dispatch.sh
+scripts/rooms/dispatcher.py
 scripts/rooms/room_worker.sh
 scripts/station_bootstrap_backend.sh
 scripts/station_bootstrap_frontend.sh
@@ -163,6 +166,7 @@ station_meta/dynamo/frontend.pid
 station_meta/env
 station_meta/locks
 station_meta/locks/hardening.env
+station_meta/locks/tree.lock
 station_meta/queue
 station_meta/queue/tasks.jsonl
 station_meta/rooms
