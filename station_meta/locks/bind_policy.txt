@@ -1,0 +1,4 @@
+Policy:
+- Backend should bind to 127.0.0.1 in Termux when used locally.
+- Ops endpoints require X-Edit-Key header.
+- Never commit station_env.sh or any tokens.

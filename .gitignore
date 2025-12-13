@@ -1,82 +1,16 @@
-# Python venv & cache
-.venv/
-env/
-venv/
-__pycache__/
-*.pyc
-
-# Node / Frontend
-node_modules/
-dist/
-build/
-.npm/
-.exports_tmp/
-
-# Logs
-*.log
-
-# Workspace artifacts
-workspace/out/
-workspace/snippets/
-workspace/scripts/
-
-# OS / editor junk
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Station runtime
-station_meta/locks/
-station_meta/dynamo/*.pid
-station_logs/
-backend.log
-frontend.log
-
-### STATION RUNTIME (ignore)
-station_logs/
-backend.log
-frontend.log
-station_meta/locks/
-station_meta/dynamo/backend.pid
-station_meta/stage_reports/*.json
-station_meta/dynamo/events.jsonl
-station_meta/queue/tasks.jsonl
-
 # Python
 __pycache__/
 *.pyc
-backend/.venv/
+.venv/
+**/.venv/
 
 # Node
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
+node_modules/
+dist/
+.vite/
 
-# --- Station runtime sensitive / volatile ---
-station_meta/settings/runtime_keys.json
-station_meta/queue/*.pid
-station_meta/queue/locks/
-station_meta/logs/
-backend.log
-frontend.log
-station_env.sh
-.env
-frontend/.env*
-nohup.out
-
-# Station local artifacts
-station_baseline_*.zip
-frontend/node_modules/
-frontend/dist/
-backend/.venv/
+# Runtime
 station_logs/
-
-# local
-station_logs/
-frontend/node_modules/
-frontend/dist/
-backend/*.sqlite3
-backend/*.db
-*.log
-.DS_Store
+app_storage/
+backups/
+artifacts/

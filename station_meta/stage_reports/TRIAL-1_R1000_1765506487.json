@@ -1,0 +1,8 @@
+{
+  "ts": "2025-12-12T02:28:07Z",
+  "mode": "TRIAL-1",
+  "root_id": 1000,
+  "pipeline": "bootstrap_validate",
+  "stage_commit_rc": 0,
+  "stage_commit_out_tail": "s/tree_authority/tree_broadcast.sh\n create mode 100755 scripts/tree_authority/tree_update.sh\n create mode 100644 station_meta/bindings/bindings.json\n create mode 100644 station_meta/dynamo/backend.pid\n create mode 100644 station_meta/dynamo/dynamo_config.json\n create mode 100644 station_meta/dynamo/events.jsonl\n create mode 100644 station_meta/locks/bindings.lock.json\n create mode 100644 station_meta/locks/env.lock.json\n create mode 100644 station_meta/locks/stage.lock.json\n create mode 100644 station_meta/locks/tree.lock.json\n create mode 100644 station_meta/queue/tasks.jsonl\n create mode 100644 station_meta/stage_reports/TRIAL-1_R2000_1765506076.json\n create mode 100644 station_meta/stage_reports/TRIAL-1_R2000_1765506077.json\n create mode 100644 station_meta/stage_reports/TRIAL-1_R2000_1765506129.json\n create mode 100644 station_meta/stage_reports/TRIAL-1_R2000_1765506130.json\n create mode 100644 station_meta/tree/broadcast.txt\n create mode 100644 station_meta/tree/tree_paths.txt\n>>> [stage_commit_push] pushing to origin...\nfatal: credential value for username contains carriage return\nIf this is intended, set `credential.protectProtocol=false`\n>>> [stage_commit_push] push FAILED\n"
+}

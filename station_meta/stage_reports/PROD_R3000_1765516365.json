@@ -1,0 +1,8 @@
+{
+  "ts": "2025-12-12T05:12:45Z",
+  "mode": "PROD",
+  "root_id": 3000,
+  "pipeline": "agent_validate",
+  "stage_commit_rc": 0,
+  "stage_commit_out_tail": "[main 4392d3c] [R3000] [PROD] Dynamo pipeline=agent_validate\n 12 files changed, 1247 insertions(+)\n create mode 100644 station_meta/integrate/integrate_2025-12-12T05:12:43Z.txt\n create mode 100644 station_meta/rooms/R1_TREE_AUTHORITY/bindings.json\n create mode 100644 station_meta/rooms/R1_TREE_AUTHORITY/tree_paths.txt\n create mode 100644 station_meta/rooms/R2_BACKEND/bindings.json\n create mode 100644 station_meta/rooms/R2_BACKEND/tree_paths.txt\n create mode 100644 station_meta/rooms/R3_AI_AGENT/bindings.json\n create mode 100644 station_meta/rooms/R3_AI_AGENT/tree_paths.txt\n create mode 100644 station_meta/rooms/R4_FRONTEND/bindings.json\n create mode 100644 station_meta/rooms/R4_FRONTEND/tree_paths.txt\n create mode 100644 station_meta/rooms/R5_OPS/bindings.json\n create mode 100644 station_meta/rooms/R5_OPS/tree_paths.txt\n create mode 100644 station_meta/rooms/last_broadcast.txt\n>>> [stage_commit_push] pushing to origin...\nTo https://github.com/nasserjawabreh9-sys/Nasser.git\n   10deff0..4392d3c  main -> main\n>>> [stage_commit_push] push OK\n"
+}

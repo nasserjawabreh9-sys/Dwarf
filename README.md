@@ -1,29 +1,18 @@
-# Station Root
+# Station - Global Scripts Pack
 
-Unified Station project with:
+## One command ops
+bash scripts/station_ops.sh status
+bash scripts/station_ops.sh build
+bash scripts/station_ops.sh run
+bash scripts/station_ops.sh restart
+bash scripts/station_ops.sh stop
+bash scripts/station_ops.sh logs backend
+bash scripts/station_ops.sh logs frontend
+bash scripts/station_ops.sh doctor
+bash scripts/station_ops.sh backup
+bash scripts/station_ops.sh restore <backup.tgz>
+bash scripts/station_ops.sh git init
+bash scripts/station_ops.sh git push "message"
 
-- **Backend**: FastAPI app under `backend/app/main.py`
-  - Loop engine in `backend/loop_engine/`
-  - Loop actions in `backend/loop_actions/`
-  - Virtual env in `backend/.venv/`
-  - Requirements in `backend/requirements.txt`
-
-- **Frontend**: React + Vite under `frontend/`
-  - API calls in `frontend/src/api/station_api.ts`
-  - Vite config in `frontend/vite.config.ts`
-
-- **Workspace**:
-  - `workspace/loop_messages.json` and related snippets/scripts.
-
-## Local development (Termux)
-
-Backend:
-
-```bash
-cd ~/station_root/backend
-source .venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8800
-cd ~/station_root/frontend
-npm install   # first time only
-npm run dev -- --host 0.0.0.0 --port 417o
-
+## Health
+curl -fsS http://127.0.0.1:8000/healthz

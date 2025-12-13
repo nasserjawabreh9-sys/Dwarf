@@ -1,54 +1,54 @@
 #!/data/data/com.termux/files/usr/bin/bash
-set -e
+set -Eeuo pipefail
+ROOT="${STATION_ROOT:-$HOME/station_root}"
+source "$ROOT/station_env.sh" || true
 
-echo "[STATION] Unified run starting (ports 8800 / 5180)..."
+BACKEND_HOST="${STATION_BACKEND_HOST:-127.0.0.1}"
+BACKEND_PORT="${STATION_BACKEND_PORT:-8000}"
+FRONTEND_PORT="${STATION_FRONTEND_PORT:-5173}"
 
-# Load env
-if [ -f "$HOME/station_env.sh" ]; then
-  . "$HOME/station_env.sh"
-  echo "[STATION] station_env.sh loaded."
-else
-  echo "[STATION] WARNING: station_env.sh not found. Continuing without it..."
+LOGS="$ROOT/station_logs"
+mkdir -p "$LOGS"
+
+kill_port(){
+  local p="$1"
+  if command -v lsof >/dev/null 2>&1; then
+    for pid in $(lsof -tiTCP:"$p" -sTCP:LISTEN 2>/dev/null); do
+      kill -9 "$pid" >/dev/null 2>&1 || true
+    done
+  fi
+}
+
+health_wait(){
+  local url1="http://$BACKEND_HOST:$BACKEND_PORT/healthz"
+  local url2="http://$BACKEND_HOST:$BACKEND_PORT/health"
+  for i in $(seq 1 80); do
+    if curl -fsS "$url1" >/dev/null 2>&1 || curl -fsS "$url2" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  return 1
+}
+
+kill_port "$BACKEND_PORT"
+kill_port "$FRONTEND_PORT"
+
+cd "$ROOT/backend"
+if [[ -f ".venv/bin/activate" ]]; then source ".venv/bin/activate"; fi
+nohup python -m uvicorn backend.app:app --host "$BACKEND_HOST" --port "$BACKEND_PORT" --reload >"$LOGS/backend.log" 2>&1 &
+sleep 0.4
+health_wait || { tail -n 120 "$LOGS/backend.log"; exit 1; }
+
+cd "$ROOT/frontend"
+export VITE_BACKEND_URL="http://$BACKEND_HOST:$BACKEND_PORT"
+nohup npm run dev -- --host 127.0.0.1 --port "$FRONTEND_PORT" >"$LOGS/frontend.log" 2>&1 &
+sleep 1
+
+if command -v termux-open-url >/dev/null 2>&1; then
+  termux-open-url "http://127.0.0.1:$FRONTEND_PORT/" >/dev/null 2>&1 || true
 fi
 
-# Kill any previous runs (best-effort)
-pkill -f "uvicorn app.main:app" 2>/dev/null || true
-pkill -f "npm run dev" 2>/dev/null || true
-
-BACKEND_PORT=8800
-FRONTEND_PORT=5180
-
-# Start backend
-cd "$HOME/station_root/backend"
-
-if [ ! -d ".venv" ]; then
-  echo "[STATION] ERROR: .venv not found. Run station_build.sh first."
-  exit 1
-fi
-
-. .venv/bin/activate
-
-echo "[STATION] Starting backend on 0.0.0.0:${BACKEND_PORT} ..."
-uvicorn app.main:app --host 0.0.0.0 --port ${BACKEND_PORT} --reload &
-BACKEND_PID=$!
-
-# Start frontend dev server
-cd "$HOME/station_root/frontend"
-
-# Backend URL for frontend
-export VITE_STATION_BACKEND_URL="http://127.0.0.1:${BACKEND_PORT}"
-
-echo "[STATION] Starting frontend dev server on 0.0.0.0:${FRONTEND_PORT} ..."
-npm run dev -- --host 0.0.0.0 --port ${FRONTEND_PORT} &
-FRONTEND_PID=$!
-
-echo "-----------------------------------------"
-echo "STATION Backend:  http://127.0.0.1:${BACKEND_PORT}/health"
-echo "STATION Config:   http://127.0.0.1:${BACKEND_PORT}/config"
-echo "STATION UI:       http://127.0.0.1:${FRONTEND_PORT}/"
-echo "-----------------------------------------"
-echo "Use:  termux-open-url http://127.0.0.1:${FRONTEND_PORT}/"
-echo "Press Ctrl+C here to stop both backend and frontend."
-echo "-----------------------------------------"
-
-wait $BACKEND_PID $FRONTEND_PID
+echo "RUNNING"
+echo "UI: http://127.0.0.1:$FRONTEND_PORT/"
+echo "Logs: $LOGS"

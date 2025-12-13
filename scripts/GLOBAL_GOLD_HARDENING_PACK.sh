@@ -1,0 +1,563 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -Eeuo pipefail
+
+ROOT="${STATION_ROOT:-$HOME/station_root}"
+BACK="$ROOT/backend"
+FRONT="$ROOT/frontend"
+OPS="$ROOT/scripts"
+LOGS="$ROOT/station_logs"
+DBDIR="$ROOT/state"
+mkdir -p "$BACK" "$FRONT" "$OPS" "$LOGS" "$DBDIR" "$FRONT/ops"
+
+echo "=== [GOLD] Hardening Station into a real software factory ==="
+
+# -----------------------------
+# 0) Termux-safe dependencies
+# -----------------------------
+pkg install -y python git curl lsof >/dev/null 2>&1 || true
+
+# -----------------------------
+# 1) Python deps (pin Termux-safe)
+# -----------------------------
+cat > "$BACK/requirements.txt" <<'REQ'
+fastapi==0.99.1
+uvicorn==0.23.2
+pydantic<2
+python-multipart==0.0.6
+requests==2.32.3
+REQ
+
+cd "$BACK"
+if [[ ! -d .venv ]]; then
+  python -m venv .venv
+fi
+source .venv/bin/activate
+python -m pip install -U pip >/dev/null 2>&1 || true
+python -m pip install -r requirements.txt >/dev/null
+
+# -----------------------------
+# 2) Kill ports script
+# -----------------------------
+cat > "$OPS/uul_kill_ports.sh" <<'SH'
+#!/data/data/com.termux/files/usr/bin/bash
+set -Eeuo pipefail
+kill_port(){ local p="$1"; for pid in $(lsof -tiTCP:"$p" -sTCP:LISTEN 2>/dev/null); do kill -9 "$pid" >/dev/null 2>&1 || true; done; }
+kill_port 8000
+kill_port 5173
+echo "OK: killed listeners on 8000/5173 (if any)."
+SH
+chmod +x "$OPS/uul_kill_ports.sh"
+
+# -----------------------------
+# 3) Factory Kernel (ASGI) - single source of truth
+# -----------------------------
+cat > "$BACK/asgi.py" <<'PY'
+from fastapi import FastAPI, Header, HTTPException
+from typing import Any, Optional
+import os, json, time, pathlib, subprocess, platform, tarfile, sqlite3, threading, uuid
+
+ROOT = os.environ.get("STATION_ROOT", str(pathlib.Path.home() / "station_root"))
+STATE_DIR = pathlib.Path(ROOT) / "state"
+LOGS_DIR = pathlib.Path(ROOT) / "station_logs"
+STATE_DIR.mkdir(parents=True, exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+DB_PATH = str(STATE_DIR / "station.db")
+EDIT_KEY = os.environ.get("STATION_EDIT_KEY", "1234")
+
+# basic rate limit (per process)
+_rl_lock = threading.Lock()
+_rl_bucket: dict[str, list[float]] = {}
+
+def _now() -> float:
+    return time.time()
+
+def rate_limit(key: str, limit: int = 40, window_sec: int = 60):
+    t = _now()
+    with _rl_lock:
+        arr = _rl_bucket.get(key, [])
+        arr = [x for x in arr if t - x <= window_sec]
+        if len(arr) >= limit:
+            raise HTTPException(status_code=429, detail="rate limit")
+        arr.append(t)
+        _rl_bucket[key] = arr
+
+def guard(edit_key: Optional[str]):
+    if edit_key != EDIT_KEY:
+        raise HTTPException(status_code=403, detail="edit key required")
+
+def db():
+    con = sqlite3.connect(DB_PATH)
+    con.execute("PRAGMA journal_mode=WAL;")
+    return con
+
+def db_init():
+    con = db()
+    con.execute("""CREATE TABLE IF NOT EXISTS kv (
+        k TEXT PRIMARY KEY,
+        v TEXT NOT NULL,
+        updated_at REAL NOT NULL
+    )""")
+    con.execute("""CREATE TABLE IF NOT EXISTS jobs (
+        id TEXT PRIMARY KEY,
+        room TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at REAL NOT NULL,
+        updated_at REAL NOT NULL,
+        payload TEXT,
+        result TEXT,
+        error TEXT
+    )""")
+    con.execute("""CREATE TABLE IF NOT EXISTS audit (
+        id TEXT PRIMARY KEY,
+        ts REAL NOT NULL,
+        actor TEXT,
+        action TEXT NOT NULL,
+        data TEXT
+    )""")
+    con.commit()
+    con.close()
+
+db_init()
+
+def audit(action: str, data: dict | None = None, actor: str = "local"):
+    con = db()
+    con.execute("INSERT INTO audit(id, ts, actor, action, data) VALUES(?,?,?,?,?)",
+                (str(uuid.uuid4()), _now(), actor, action, json.dumps(data or {})))
+    con.commit()
+    con.close()
+
+def kv_get(k: str, default=None):
+    con = db()
+    cur = con.execute("SELECT v FROM kv WHERE k=?", (k,))
+    row = cur.fetchone()
+    con.close()
+    return json.loads(row[0]) if row else default
+
+def kv_set(k: str, v: Any):
+    con = db()
+    con.execute("INSERT INTO kv(k,v,updated_at) VALUES(?,?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v, updated_at=excluded.updated_at",
+                (k, json.dumps(v), _now()))
+    con.commit()
+    con.close()
+
+def job_create(room: str, payload: dict):
+    jid = str(uuid.uuid4())
+    con = db()
+    con.execute("INSERT INTO jobs(id,room,status,created_at,updated_at,payload) VALUES(?,?,?,?,?,?)",
+                (jid, room, "queued", _now(), _now(), json.dumps(payload)))
+    con.commit()
+    con.close()
+    return jid
+
+def job_update(jid: str, **fields):
+    allowed = {"status","result","error","updated_at"}
+    sets = []
+    vals = []
+    for k,v in fields.items():
+        if k in allowed:
+            sets.append(f"{k}=?")
+            vals.append(json.dumps(v) if k in ("result",) and v is not None else v)
+    if not sets:
+        return
+    vals.append(_now())
+    vals.append(jid)
+    con = db()
+    con.execute(f"UPDATE jobs SET {', '.join(sets)}, updated_at=? WHERE id=?", tuple(vals))
+    con.commit()
+    con.close()
+
+def job_get(jid: str):
+    con = db()
+    cur = con.execute("SELECT id,room,status,created_at,updated_at,payload,result,error FROM jobs WHERE id=?", (jid,))
+    row = cur.fetchone()
+    con.close()
+    if not row:
+        return None
+    return {
+        "id": row[0], "room": row[1], "status": row[2],
+        "created_at": row[3], "updated_at": row[4],
+        "payload": json.loads(row[5]) if row[5] else {},
+        "result": json.loads(row[6]) if row[6] else None,
+        "error": row[7]
+    }
+
+def jobs_list(limit: int = 50):
+    con = db()
+    cur = con.execute("SELECT id,room,status,created_at,updated_at FROM jobs ORDER BY created_at DESC LIMIT ?", (limit,))
+    rows = cur.fetchall()
+    con.close()
+    return [{"id":r[0],"room":r[1],"status":r[2],"created_at":r[3],"updated_at":r[4]} for r in rows]
+
+def _cmd(s: str) -> str:
+    try:
+        out = subprocess.check_output(s, shell=True, stderr=subprocess.STDOUT, timeout=8)
+        return out.decode("utf-8","ignore").strip()
+    except Exception:
+        return ""
+
+def _safe_path(p: str) -> pathlib.Path:
+    base = pathlib.Path(ROOT).resolve()
+    tgt = (base / p).resolve()
+    if tgt != base and base not in tgt.parents:
+        raise HTTPException(status_code=400, detail="forbidden path")
+    return tgt
+
+# -----------------------------
+# Kernel + Rooms
+# -----------------------------
+class Kernel:
+    def __init__(self):
+        self.rooms: dict[str, Any] = {}
+    def register(self, name: str, fn: Any):
+        self.rooms[name] = fn
+    def run(self, name: str, payload: dict):
+        if name not in self.rooms:
+            return {"error":"room not found","available":sorted(self.rooms)}
+        return self.rooms[name](payload or {})
+
+kernel = Kernel()
+
+def room_doctor(_):
+    return {
+        "status":"ok",
+        "mode":"termux-safe",
+        "python": _cmd("python -V"),
+        "node": _cmd("node -v"),
+        "npm": _cmd("npm -v"),
+        "git": _cmd("git --version"),
+        "platform": platform.platform(),
+        "root": ROOT,
+        "db": DB_PATH
+    }
+
+def room_rooms_list(_):
+    return {"rooms": sorted(kernel.rooms)}
+
+def room_fs(payload):
+    action = payload.get("action")
+    path = payload.get("path","")
+    tgt = _safe_path(path)
+    if action == "ls":
+        if not tgt.exists():
+            return {"error":"not found"}
+        return {"path": str(tgt), "files": [p.name for p in tgt.iterdir()]}
+    if action == "read":
+        if not tgt.exists():
+            return {"error":"not found"}
+        return {"path": str(tgt), "content": tgt.read_text(errors="ignore")[:200000]}
+    if action == "write":
+        content = payload.get("content","")
+        tgt.parent.mkdir(parents=True, exist_ok=True)
+        tgt.write_text(content)
+        return {"ok": True, "path": str(tgt), "bytes": len(content.encode("utf-8","ignore"))}
+    return {"error":"unknown fs action"}
+
+def room_env(payload):
+    allow = set(payload.get("keys", []))
+    # do not leak secrets by default. allowlist only.
+    out = {}
+    for k in allow:
+        if k.startswith("STATION_") or k in ("OPENAI_API_KEY","GITHUB_TOKEN","RENDER_API_KEY"):
+            v = os.environ.get(k)
+            out[k] = ("set" if v else None)
+    return out
+
+def room_snapshot(_):
+    snap_dir = pathlib.Path(ROOT) / "snapshots"
+    snap_dir.mkdir(exist_ok=True)
+    name = f"snapshot_{int(time.time())}.tgz"
+    f = snap_dir / name
+    with tarfile.open(f, "w:gz") as tar:
+        tar.add(ROOT, arcname="station_root")
+    audit("snapshot", {"file": str(f)})
+    return {"snapshot": str(f)}
+
+def room_restore(payload):
+    f = payload.get("file")
+    if not f:
+        return {"error":"file required"}
+    fp = pathlib.Path(f)
+    if not fp.exists():
+        return {"error":"not found"}
+    with tarfile.open(fp, "r:gz") as tar:
+        tar.extractall(path=pathlib.Path(ROOT).parent)
+    audit("restore", {"file": str(fp)})
+    return {"restored": str(fp)}
+
+def room_git_status(_):
+    repo = pathlib.Path(ROOT)
+    if not (repo / ".git").exists():
+        return {"error":"no git repo"}
+    return {"status": _cmd(f"cd {repo} && git status --porcelain && git rev-parse --abbrev-ref HEAD && git log -1 --oneline")}
+
+def room_git_push(payload):
+    repo = pathlib.Path(ROOT)
+    if not (repo / ".git").exists():
+        return {"error":"no git repo"}
+    msg = payload.get("message","station update")
+    branch = payload.get("branch","main")
+    # NOTE: token injection is external (env or git remote already configured)
+    out = _cmd(f'cd {repo} && git add -A && git commit -m "{msg}" || true && git push origin {branch}')
+    audit("git_push", {"branch": branch, "message": msg})
+    return {"pushed": True, "out": out[-2000:]}
+
+def room_render_ping(_):
+    # placeholder: we do not call Render API unless you have key & want to wire it.
+    return {"ok": True, "note": "render integration placeholder"}
+
+kernel.register("doctor", room_doctor)
+kernel.register("rooms_list", room_rooms_list)
+kernel.register("fs", room_fs)
+kernel.register("env", room_env)
+kernel.register("snapshot", room_snapshot)
+kernel.register("restore", room_restore)
+kernel.register("git_status", room_git_status)
+kernel.register("git_push", room_git_push)
+kernel.register("render_ping", room_render_ping)
+
+# -----------------------------
+# Job runner (threaded)
+# -----------------------------
+_job_lock = threading.Lock()
+_job_threads: dict[str, threading.Thread] = {}
+
+def _run_job(jid: str, room: str, payload: dict):
+    try:
+        job_update(jid, status="running")
+        res = kernel.run(room, payload)
+        job_update(jid, status="done", result=res)
+    except Exception as e:
+        job_update(jid, status="failed", error=str(e))
+
+def enqueue(room: str, payload: dict):
+    jid = job_create(room, payload)
+    t = threading.Thread(target=_run_job, args=(jid, room, payload), daemon=True)
+    with _job_lock:
+        _job_threads[jid] = t
+    t.start()
+    return jid
+
+# -----------------------------
+# FastAPI endpoints (Factory API)
+# -----------------------------
+app = FastAPI(title="Station Factory Kernel", version="1.1.0")
+
+@app.get("/healthz")
+def healthz():
+    return {"ok": True, "entry": "asgi.factory", "rooms": len(kernel.rooms), "db": True}
+
+@app.get("/info")
+def info():
+    return {
+        "root": ROOT,
+        "db": DB_PATH,
+        "rooms": sorted(kernel.rooms),
+        "edit_key_required": True
+    }
+
+@app.get("/ops/rooms")
+def ops_rooms():
+    return {"rooms": sorted(kernel.rooms)}
+
+@app.post("/ops/run/{room}")
+def ops_run(room: str, payload: dict | None = None, x_edit_key: str | None = Header(None)):
+    guard(x_edit_key)
+    rate_limit(x_edit_key or "none")
+    audit("ops_run", {"room": room})
+    return kernel.run(room, payload or {})
+
+@app.post("/ops/enqueue/{room}")
+def ops_enqueue(room: str, payload: dict | None = None, x_edit_key: str | None = Header(None)):
+    guard(x_edit_key)
+    rate_limit(x_edit_key or "none")
+    jid = enqueue(room, payload or {})
+    audit("ops_enqueue", {"room": room, "job": jid})
+    return {"job_id": jid}
+
+@app.get("/ops/jobs")
+def ops_jobs(limit: int = 50, x_edit_key: str | None = Header(None)):
+    guard(x_edit_key)
+    return {"jobs": jobs_list(limit)}
+
+@app.get("/ops/jobs/{job_id}")
+def ops_job(job_id: str, x_edit_key: str | None = Header(None)):
+    guard(x_edit_key)
+    j = job_get(job_id)
+    if not j:
+        raise HTTPException(status_code=404, detail="job not found")
+    return j
+
+@app.get("/ops/state/get")
+def ops_state_get(k: str, x_edit_key: str | None = Header(None)):
+    guard(x_edit_key)
+    return {"k": k, "v": kv_get(k)}
+
+@app.post("/ops/state/set")
+def ops_state_set(payload: dict, x_edit_key: str | None = Header(None)):
+    guard(x_edit_key)
+    k = payload.get("k")
+    v = payload.get("v")
+    if not k:
+        raise HTTPException(status_code=400, detail="k required")
+    kv_set(k, v)
+    audit("state_set", {"k": k})
+    return {"ok": True}
+
+@app.get("/ops/logs/tail")
+def ops_logs_tail(file: str = "backend.log", n: int = 200, x_edit_key: str | None = Header(None)):
+    guard(x_edit_key)
+    p = (LOGS_DIR / file).resolve()
+    if LOGS_DIR not in p.parents and p != LOGS_DIR:
+        raise HTTPException(status_code=400, detail="forbidden log path")
+    if not p.exists():
+        return {"file": str(p), "lines": []}
+    lines = p.read_text(errors="ignore").splitlines()[-max(1, min(n, 800)):]
+    return {"file": str(p), "lines": lines}
+PY
+
+# -----------------------------
+# 4) Official backend runner (always runs correct asgi)
+# -----------------------------
+cat > "$BACK/run_backend_official.sh" <<'SH'
+#!/data/data/com.termux/files/usr/bin/bash
+set -Eeuo pipefail
+ROOT="${STATION_ROOT:-$HOME/station_root}"
+LOGS="$ROOT/station_logs"; mkdir -p "$LOGS"
+cd "$ROOT/backend"
+source .venv/bin/activate 2>/dev/null || true
+bash "$ROOT/scripts/uul_kill_ports.sh" >/dev/null 2>&1 || true
+nohup python -m uvicorn asgi:app --host 127.0.0.1 --port 8000 >"$LOGS/backend.log" 2>&1 &
+sleep 1
+python -c "import asgi; print('ASGI_FILE=', asgi.__file__)" >>"$LOGS/backend.log" 2>&1 || true
+curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1 && echo "OK: backend up" || { echo "Backend failed"; tail -n 120 "$LOGS/backend.log" || true; exit 1; }
+echo "Backend: http://127.0.0.1:8000"
+SH
+chmod +x "$BACK/run_backend_official.sh"
+
+# -----------------------------
+# 5) Ops UI (Jobs + Logs)
+# -----------------------------
+cat > "$FRONT/ops/index.html" <<'HTML'
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Station Factory Ops</title>
+  <style>
+    body{font-family:system-ui;margin:16px}
+    input,button,select{padding:8px;margin:4px}
+    pre{background:#f4f4f4;padding:12px;overflow:auto;max-height:360px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  </style>
+</head>
+<body>
+<h2>Station Factory Ops</h2>
+
+<div class="row">
+  <input id="key" placeholder="Edit Key (default 1234)" />
+  <button onclick="loadRooms()">Load Rooms</button>
+  <button onclick="loadJobs()">Jobs</button>
+  <button onclick="tailLog()">Tail Log</button>
+</div>
+
+<div class="row">
+  <select id="roomSel"></select>
+  <button onclick="runNow()">Run Sync</button>
+  <button onclick="enqueue()">Enqueue Job</button>
+</div>
+
+<pre id="out"></pre>
+
+<script>
+const base="http://127.0.0.1:8000";
+function key(){ return document.getElementById("key").value || "1234"; }
+function out(x){ document.getElementById("out").textContent = x; }
+
+async function loadRooms(){
+  const r = await fetch(base+"/ops/rooms");
+  const j = await r.json();
+  const sel=document.getElementById("roomSel");
+  sel.innerHTML="";
+  j.rooms.forEach(x=>{
+    const o=document.createElement("option");
+    o.value=x; o.textContent=x;
+    sel.appendChild(o);
+  });
+  out(JSON.stringify(j,null,2));
+}
+
+async function runNow(){
+  const room=document.getElementById("roomSel").value;
+  const r = await fetch(base+"/ops/run/"+room,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","X-EDIT-KEY":key()},
+    body:"{}"
+  });
+  out(await r.text());
+}
+
+async function enqueue(){
+  const room=document.getElementById("roomSel").value;
+  const r = await fetch(base+"/ops/enqueue/"+room,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","X-EDIT-KEY":key()},
+    body:"{}"
+  });
+  out(await r.text());
+}
+
+async function loadJobs(){
+  const r = await fetch(base+"/ops/jobs?limit=30",{headers:{"X-EDIT-KEY":key()}});
+  out(await r.text());
+}
+
+async function tailLog(){
+  const r = await fetch(base+"/ops/logs/tail?file=backend.log&n=200",{headers:{"X-EDIT-KEY":key()}});
+  out(await r.text());
+}
+</script>
+</body>
+</html>
+HTML
+
+# -----------------------------
+# 6) Station ops wrapper (run/stop/status)
+# -----------------------------
+cat > "$OPS/station_ops.sh" <<'SH'
+#!/data/data/com.termux/files/usr/bin/bash
+set -Eeuo pipefail
+ROOT="${STATION_ROOT:-$HOME/station_root}"
+cmd="${1:-}"
+case "$cmd" in
+  run)
+    bash "$ROOT/backend/run_backend_official.sh"
+    echo "Ops UI: file://$ROOT/frontend/ops/index.html"
+    ;;
+  stop)
+    bash "$ROOT/scripts/uul_kill_ports.sh" || true
+    ;;
+  status)
+    curl -s http://127.0.0.1:8000/healthz || true
+    echo
+    ;;
+  *)
+    echo "Usage: $0 {run|stop|status}"
+    exit 1
+    ;;
+esac
+SH
+chmod +x "$OPS/station_ops.sh"
+
+# -----------------------------
+# 7) Start
+# -----------------------------
+echo "=== RUN ==="
+bash "$OPS/station_ops.sh" stop >/dev/null 2>&1 || true
+bash "$OPS/station_ops.sh" run
+
+echo "=== DONE (GOLD) ==="
+echo "Backend: http://127.0.0.1:8000"
+echo "Info:    http://127.0.0.1:8000/info"
+echo "Ops UI:  file://$ROOT/frontend/ops/index.html"
+echo "Edit Key default: 1234 (env STATION_EDIT_KEY)"

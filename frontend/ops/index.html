@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Station Factory Ops</title>
+  <style>
+    body{font-family:system-ui;margin:16px}
+    input,button,select{padding:8px;margin:4px}
+    pre{background:#f4f4f4;padding:12px;overflow:auto;max-height:360px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  </style>
+</head>
+<body>
+<h2>Station Factory Ops</h2>
+
+<div class="row">
+  <input id="key" placeholder="Edit Key (default 1234)" />
+  <button onclick="loadRooms()">Load Rooms</button>
+  <button onclick="loadJobs()">Jobs</button>
+  <button onclick="tailLog()">Tail Log</button>
+</div>
+
+<div class="row">
+  <select id="roomSel"></select>
+  <button onclick="runNow()">Run Sync</button>
+  <button onclick="enqueue()">Enqueue Job</button>
+</div>
+
+<pre id="out"></pre>
+
+<script>
+const base="http://127.0.0.1:8000";
+function key(){ return document.getElementById("key").value || "1234"; }
+function out(x){ document.getElementById("out").textContent = x; }
+
+async function loadRooms(){
+  const r = await fetch(base+"/ops/rooms");
+  const j = await r.json();
+  const sel=document.getElementById("roomSel");
+  sel.innerHTML="";
+  j.rooms.forEach(x=>{
+    const o=document.createElement("option");
+    o.value=x; o.textContent=x;
+    sel.appendChild(o);
+  });
+  out(JSON.stringify(j,null,2));
+}
+
+async function runNow(){
+  const room=document.getElementById("roomSel").value;
+  const r = await fetch(base+"/ops/run/"+room,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","X-EDIT-KEY":key()},
+    body:"{}"
+  });
+  out(await r.text());
+}
+
+async function enqueue(){
+  const room=document.getElementById("roomSel").value;
+  const r = await fetch(base+"/ops/enqueue/"+room,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","X-EDIT-KEY":key()},
+    body:"{}"
+  });
+  out(await r.text());
+}
+
+async function loadJobs(){
+  const r = await fetch(base+"/ops/jobs?limit=30",{headers:{"X-EDIT-KEY":key()}});
+  out(await r.text());
+}
+
+async function tailLog(){
+  const r = await fetch(base+"/ops/logs/tail?file=backend.log&n=200",{headers:{"X-EDIT-KEY":key()}});
+  out(await r.text());
+}
+</script>
+</body>
+</html>
