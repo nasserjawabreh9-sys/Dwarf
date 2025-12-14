@@ -12,14 +12,13 @@ export default function App() {
   const [now, setNow] = useState<number>(Date.now());
 
   useEffect(() => {
-  const t = setInterval(() => setNow(Date.now()), 1000);
-      return (
-        <div style={{ marginBottom: 12 }}>
-          <StatusPanel />
-        </div>
-  return () => clearInterval(t);
-}, []);
-;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return (
+      <div style={{ marginBottom: 12 }}>
+        <StatusPanel />
+      </div>
+) => clearInterval(t);
+  }, []);
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial", height: "100vh", display: "flex", flexDirection: "column" }}>

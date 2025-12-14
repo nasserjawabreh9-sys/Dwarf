@@ -1,3 +1,19 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+ROOT="${STATION_ROOT:-$HOME/station_root}"
+TARGET="$ROOT/backend/app/core/config.py"
+
+if [ ! -f "$TARGET" ]; then
+  echo "ERROR: missing $TARGET"
+  exit 1
+fi
+
+echo ">>> Backup config.py"
+cp -f "$TARGET" "$TARGET.bak_$(date +%Y%m%d_%H%M%S)"
+
+echo ">>> Writing Termux-safe Pydantic v1 config.py"
+cat > "$TARGET" <<'PY'
 import os
 from pydantic import BaseSettings
 
@@ -33,3 +49,6 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 settings = Settings()
+PY
+
+echo ">>> OK: patched $TARGET"

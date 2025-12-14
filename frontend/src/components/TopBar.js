@@ -1,0 +1,4 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+export default function TopBar(p) {
+    return (_jsxs("div", { className: "topBar", children: [_jsxs("div", { className: "brand", children: [_jsx("div", { className: "brandBadge", title: "Dwarf Armory", children: _jsx("span", { style: { fontWeight: 900 }, children: "DA" }) }), _jsxs("div", { className: "brandTitle", children: [_jsx("div", { children: p.title }), _jsx("small", { children: p.subtitle })] })] }), _jsxs("div", { className: "topActions", children: [p.rightHint ? _jsx("span", { className: "pill", children: p.rightHint }) : null, _jsx("button", { className: "btn", onClick: p.onClearChat, title: "Clear chat", children: "Clear Chat" }), _jsx("button", { className: "btn btnPrimary", onClick: p.onOpenSettings, title: "Keys & Settings", children: "Settings" })] })] }));
+}
