@@ -14,3 +14,4 @@ station_logs/
 app_storage/
 backups/
 artifacts/
+global/logs/
