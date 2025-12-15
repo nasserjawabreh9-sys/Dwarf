@@ -438,7 +438,7 @@ except Exception:
     JSONResponse = None
     Route = None
 
-from agent_queue import submit_task, claim_next, set_result, get_task, list_recent
+from .agent_queue import submit_task, claim_next, set_result, get_task, list_recent
 
 def _edit_key_ok(request) -> bool:
     want = os.getenv("STATION_EDIT_KEY", "1234")
