@@ -717,42 +717,6 @@ try:
 except Exception:
     pass
 
-# --- Render/Health endpoints ---
-def _health_payload():
-    return {"ok": True}
-
-try:
-    if hasattr(app, "get"):
-        @app.get("/healthz")
-        def healthz():
-            return _health_payload()
-
-        @app.get("/health")
-        def health():
-            return _health_payload()
-
-        if hasattr(app, "head"):
-            @app.head("/")
-            def head_root():
-                return None
-    else:
-        raise Exception("not-fastapi")
-except Exception:
-    from starlette.responses import JSONResponse, Response
-
-    def _healthz(request):
-        return JSONResponse(_health_payload())
-
-    def _health(request):
-        return JSONResponse(_health_payload())
-
-    def _head_root(request):
-        return Response(status_code=200)
-
-    app.add_route("/healthz", _healthz, methods=["GET"])
-    app.add_route("/health", _health, methods=["GET"])
-    app.add_route("/", _head_root, methods=["HEAD"])
-# --- end health endpoints ---
 
 # --- FastAPI Wrapper (auto-added) ---
 # Goal:
@@ -809,3 +773,42 @@ if FastAPI is not None:
     except Exception:
         pass
 # --- end FastAPI Wrapper ---
+
+# --- Render/Health endpoints ---
+def _health_payload():
+    return {"ok": True}
+
+try:
+    # FastAPI
+    if hasattr(app, "get"):
+        @app.get("/healthz")
+        def healthz():
+            return _health_payload()
+
+        @app.get("/health")
+        def health():
+            return _health_payload()
+
+        if hasattr(app, "head"):
+            @app.head("/")
+            def head_root():
+                return None
+    else:
+        raise Exception("not-fastapi")
+except Exception:
+    # Starlette fallback
+    from starlette.responses import JSONResponse, Response
+
+    def _healthz(request):
+        return JSONResponse(_health_payload())
+
+    def _health(request):
+        return JSONResponse(_health_payload())
+
+    def _head_root(request):
+        return Response(status_code=200)
+
+    app.add_route("/healthz", _healthz, methods=["GET"])
+    app.add_route("/health", _health, methods=["GET"])
+    app.add_route("/", _head_root, methods=["HEAD"])
+# --- end health endpoints ---
