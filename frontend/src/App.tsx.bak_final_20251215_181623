@@ -1,0 +1,373 @@
+useEffect(() => {
+  const t = setInterval(() => {
+    // existing logic
+  }, 1000);
+
+}, []);
+import { useEffect, useMemo, useState } from "react";
+import { backendBase, getJSON, postJSON } from "./api";
+
+import StatusPanel from "./components/status/StatusPanel";
+
+type Tab = "Landing" | "Dashboard" | "Settings" | "Console";
+
+function cls(s: string) { return s; }
+
+export default function App() {
+  const [tab, setTab] = useState<Tab>("Landing");
+  const [now, setNow] = useState<number>(Date.now());
+
+  useEffect(() => {
+  const t = setInterval(() => setNow(Date.now()), 1000);
+      return (
+        <div style={{ marginBottom: 12 }}>
+          <StatusPanel />
+        </div>
+
+}, []);
+;
+
+  return (
+    <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial", height: "100vh", display: "flex", flexDirection: "column" }}>
+      <TopBar tab={tab} setTab={setTab} now={now} />
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        <SideBar tab={tab} setTab={setTab} />
+        <div style={{ flex: 1, minHeight: 0, background: "#0b1220", color: "#e8eefc" }}>
+          {tab === "Landing" && <Landing setTab={setTab} />}
+          {tab === "Dashboard" && <Dashboard />}
+          {tab === "Settings" && <Settings />}
+          {tab === "Console" && <Console />}
+        </div>
+      </div>
+      <StatusBar />
+      <div style={{ position:"fixed", right: 10, bottom: 40, fontSize: 11, opacity: 0.6 }}>
+        Backend: {backendBase}
+      </div>
+    </div>
+  );
+}
+
+function TopBar({ tab, setTab, now }: { tab: Tab; setTab: (t:Tab)=>void; now:number; }) {
+  return (
+    <div style={{ height: 44, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 12px", background:"#0a2a66", color:"#eaf2ff", borderBottom:"1px solid rgba(255,255,255,0.1)" }}>
+      <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+        <div style={{ width: 26, height: 26, borderRadius: 8, background:"#163b8a", display:"grid", placeItems:"center", boxShadow:"0 6px 18px rgba(0,0,0,0.35)" }}>
+          <span style={{ fontWeight: 800 }}>S</span>
+        </div>
+        <div style={{ fontWeight: 700 }}>Station</div>
+        <div style={{ opacity: 0.75, fontSize: 12 }}>Royal Console</div>
+      </div>
+      <div style={{ display:"flex", gap:8 }}>
+        {(["Landing","Dashboard","Settings","Console"] as Tab[]).map(t => (
+          <button key={t}
+            onClick={() => setTab(t)}
+            style={{
+              height: 28, padding:"0 10px", borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.18)",
+              background: tab===t ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.15)",
+              color:"#eaf2ff", cursor:"pointer"
+            }}>
+            {t}
+          </button>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, opacity: 0.75 }}>
+        {new Date(now).toLocaleTimeString()}
+      </div>
+    </div>
+  );
+}
+
+function SideBar({ tab, setTab }: { tab: Tab; setTab:(t:Tab)=>void }) {
+  const items: {t:Tab, d:string}[] = [
+    { t:"Landing", d:"Start & Demo" },
+    { t:"Dashboard", d:"Health & Rooms" },
+    { t:"Settings", d:"Keys & Integrations" },
+    { t:"Console", d:"Ops & Logs" }
+  ];
+  return (
+    <div style={{ width: 240, background:"#07101f", borderRight:"1px solid rgba(255,255,255,0.08)", padding: 12 }}>
+      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>Navigation</div>
+      {items.map(x => (
+        <div key={x.t}
+          onClick={() => setTab(x.t)}
+          style={{
+            padding:"10px 10px", borderRadius: 12, cursor:"pointer",
+            background: tab===x.t ? "rgba(74,144,226,0.18)" : "transparent",
+            border: tab===x.t ? "1px solid rgba(74,144,226,0.35)" : "1px solid rgba(255,255,255,0.06)",
+            marginBottom: 8
+          }}>
+          <div style={{ fontWeight: 700 }}>{x.t}</div>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>{x.d}</div>
+        </div>
+      ))}
+      <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border:"1px dashed rgba(255,255,255,0.14)", opacity: 0.85 }}>
+        <div style={{ fontWeight: 700 }}>Armored Dwarf</div>
+        <div style={{ fontSize: 12, opacity: 0.7 }}>Brand slot reserved</div>
+      </div>
+    </div>
+  );
+}
+
+function Landing({ setTab }: { setTab:(t:Tab)=>void }) {
+  return (
+    <div style={{ padding: 18, maxWidth: 980 }}>
+      <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -0.4 }}>Station is Ready</div>
+      <div style={{ marginTop: 6, opacity: 0.8 }}>One UI to run backend, keys, rooms, ops, and dynamo.</div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap: 12, marginTop: 14 }}>
+        <Card title="5-sec animation placeholder" desc="You can replace this with your dwarf cartoon + audio later." />
+        <Card title="Keys bars" desc="Settings screen contains permanent bars for: API Key, TTS, Hooks, OCR, Web, WhatsApp, Email, GitHub, Render." />
+      </div>
+
+      <div style={{ marginTop: 14, display:"flex", gap:10 }}>
+        <button onClick={() => setTab("Settings")} style={btnPrimary}>Open Settings</button>
+        <button onClick={() => setTab("Dashboard")} style={btnGhost}>Open Dashboard</button>
+        <button onClick={() => setTab("Console")} style={btnGhost}>Open Console</button>
+      </div>
+
+      <div style={{ marginTop: 16, fontSize: 12, opacity: 0.7 }}>
+        Note: animation/audio are placeholders to keep this build Termux-safe and stable.
+      </div>
+    </div>
+  );
+}
+
+function Dashboard(){
+  const [health, setHealth] = useState<any>(null);
+  const [rooms, setRooms] = useState<any>(null);
+  const [err, setErr] = useState<string>("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const h = await getJSON("/healthz");
+        const r = await getJSON("/api/rooms");
+        setHealth(h);
+        setRooms(r);
+      } catch (e:any) {
+        setErr(String(e?.message || e));
+      }
+    })();
+  }, []);
+
+  return (
+    <div style={{ padding: 18, maxWidth: 980 }}>
+      <div style={{ fontSize: 22, fontWeight: 900 }}>Dashboard</div>
+      {err && <div style={{ marginTop: 10, color:"#ffb4b4" }}>Error: {err}</div>}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop: 12 }}>
+        <Panel title="Backend Health" value={health ? "OK" : "..."} body={<pre style={pre}>{JSON.stringify(health, null, 2)}</pre>} />
+        <Panel title="Rooms / Guards" value={rooms ? "Loaded" : "..."} body={<pre style={pre}>{JSON.stringify(rooms, null, 2)}</pre>} />
+      </div>
+    </div>
+  );
+}
+
+function Settings(){
+  const [form, setForm] = useState<any>({
+    openai_api_key: localStorage.getItem("openai_api_key") || "",
+    github_token: localStorage.getItem("github_token") || "",
+    github_repo: localStorage.getItem("github_repo") || "",
+    render_api_key: localStorage.getItem("render_api_key") || "",
+    render_service_id: localStorage.getItem("render_service_id") || "",
+    edit_mode_key: localStorage.getItem("edit_mode_key") || "1234",
+
+    tts_key: localStorage.getItem("tts_key") || "",
+    webhooks_url: localStorage.getItem("webhooks_url") || "",
+    ocr_key: localStorage.getItem("ocr_key") || "",
+    web_integration_key: localStorage.getItem("web_integration_key") || "",
+    whatsapp_key: localStorage.getItem("whatsapp_key") || "",
+    email_smtp: localStorage.getItem("email_smtp") || ""
+  });
+
+  const [status, setStatus] = useState<string>("");
+
+  function saveLocal(){
+    Object.keys(form).forEach(k => localStorage.setItem(k, String(form[k] ?? "")));
+    setStatus("Saved to LocalStorage");
+    setTimeout(() => setStatus(""), 1200);
+  }
+
+  async function saveBackend(){
+    try{
+      await postJSON("/api/settings", form);
+      setStatus("Saved to Backend");
+      setTimeout(() => setStatus(""), 1200);
+    }catch(e:any){
+      setStatus("Backend error: " + (e?.message||e));
+    }
+  }
+
+  async function loadBackend(){
+    try{
+      const r = await getJSON("/api/settings");
+      setStatus("Loaded (masked) from Backend");
+      console.log("backend settings", r);
+      setTimeout(() => setStatus(""), 1200);
+    }catch(e:any){
+      setStatus("Load error: " + (e?.message||e));
+    }
+  }
+
+  return (
+    <div style={{ padding: 18, maxWidth: 980 }}>
+      <div style={{ fontSize: 22, fontWeight: 900 }}>Station Settings</div>
+      <div style={{ marginTop: 6, opacity: 0.8, fontSize: 13 }}>
+        Keys are stored in LocalStorage. You can also push them to backend. Ops endpoints require Edit Mode Key.
+      </div>
+
+      <div style={{ marginTop: 12, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <Field label="OpenAI API Key" v={form.openai_api_key} onChange={(v)=>setForm({...form, openai_api_key:v})} secret />
+        <Field label="GitHub Token" v={form.github_token} onChange={(v)=>setForm({...form, github_token:v})} secret />
+        <Field label="GitHub Repo (owner/repo)" v={form.github_repo} onChange={(v)=>setForm({...form, github_repo:v})} />
+        <Field label="Render API Key" v={form.render_api_key} onChange={(v)=>setForm({...form, render_api_key:v})} secret />
+        <Field label="Render Service ID" v={form.render_service_id} onChange={(v)=>setForm({...form, render_service_id:v})} />
+        <Field label="Edit Mode Key (required for Ops)" v={form.edit_mode_key} onChange={(v)=>setForm({...form, edit_mode_key:v})} />
+      </div>
+
+      <div style={{ marginTop: 12, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <Field label="TTS Key" v={form.tts_key} onChange={(v)=>setForm({...form, tts_key:v})} />
+        <Field label="Webhooks URL" v={form.webhooks_url} onChange={(v)=>setForm({...form, webhooks_url:v})} />
+        <Field label="OCR Key" v={form.ocr_key} onChange={(v)=>setForm({...form, ocr_key:v})} />
+        <Field label="Web Integration Key" v={form.web_integration_key} onChange={(v)=>setForm({...form, web_integration_key:v})} />
+        <Field label="WhatsApp Key" v={form.whatsapp_key} onChange={(v)=>setForm({...form, whatsapp_key:v})} />
+        <Field label="Email SMTP (string)" v={form.email_smtp} onChange={(v)=>setForm({...form, email_smtp:v})} />
+      </div>
+
+      <div style={{ marginTop: 12, display:"flex", gap:10, flexWrap:"wrap" }}>
+        <button onClick={saveLocal} style={btnPrimary}>Save Local</button>
+        <button onClick={saveBackend} style={btnGhost}>Save to Backend</button>
+        <button onClick={loadBackend} style={btnGhost}>Load from Backend</button>
+        <div style={{ marginLeft: 8, fontSize: 12, opacity: 0.75, alignSelf:"center" }}>{status}</div>
+      </div>
+    </div>
+  );
+}
+
+function Console(){
+  const [out, setOut] = useState<string>("");
+  const [editKey, setEditKey] = useState<string>(localStorage.getItem("edit_mode_key") || "1234");
+
+  async function gitStatus(){
+    try{
+      const r = await getJSON("/api/ops/git/status");
+      setOut(JSON.stringify(r, null, 2));
+    }catch(e:any){
+      setOut("Error: " + (e?.message||e));
+    }
+  }
+
+  async function gitPush(){
+    try{
+      const r = await postJSON("/api/ops/git/push", { edit_mode_key: editKey, message: "station global build" });
+      setOut(JSON.stringify(r, null, 2));
+    }catch(e:any){
+      setOut("Error: " + (e?.message||e));
+    }
+  }
+
+  async function dynamoTick(){
+    try{
+      const r = await postJSON("/api/dynamo/tick", {});
+      setOut(JSON.stringify(r, null, 2));
+    }catch(e:any){
+      setOut("Error: " + (e?.message||e));
+    }
+  }
+
+  return (
+    <div style={{ padding: 18, maxWidth: 980 }}>
+      <div style={{ fontSize: 22, fontWeight: 900 }}>Station Console</div>
+
+      <div style={{ marginTop: 10, display:"flex", gap:10, flexWrap:"wrap" }}>
+        <button onClick={gitStatus} style={btnGhost}>Git Status (Backend)</button>
+        <button onClick={gitPush} style={btnPrimary}>Stage + Commit + Push (Backend)</button>
+        <button onClick={dynamoTick} style={btnGhost}>Dynamo Tick</button>
+
+        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+          <span style={{ fontSize: 12, opacity: 0.75 }}>Edit Key</span>
+          <input value={editKey} onChange={(e)=>{setEditKey(e.target.value); localStorage.setItem("edit_mode_key", e.target.value);}}
+            style={{ height: 28, borderRadius: 10, border:"1px solid rgba(255,255,255,0.18)", background:"rgba(0,0,0,0.25)", color:"#eaf2ff", padding:"0 10px" }} />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <pre style={pre}>{out || "Output will appear here."}</pre>
+      </div>
+    </div>
+  );
+}
+
+function Card({title, desc}:{title:string; desc:string}){
+  return (
+    <div style={{ padding: 14, borderRadius: 16, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ fontWeight: 900 }}>{title}</div>
+      <div style={{ marginTop: 6, opacity: 0.8, fontSize: 13 }}>{desc}</div>
+    </div>
+  );
+}
+
+function Panel({title, value, body}:{title:string; value:string; body:any}){
+  return (
+    <div style={{ padding: 14, borderRadius: 16, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ fontWeight: 900 }}>{title}</div>
+        <div style={{ fontSize: 12, opacity: 0.75 }}>{value}</div>
+      </div>
+      <div style={{ marginTop: 10 }}>{body}</div>
+    </div>
+  );
+}
+
+function Field({label, v, onChange, secret}:{label:string; v:string; onChange:(v:string)=>void; secret?:boolean}){
+  return (
+    <div style={{ padding: 12, borderRadius: 16, background:"rgba(0,0,0,0.18)", border:"1px solid rgba(255,255,255,0.10)" }}>
+      <div style={{ fontSize: 12, opacity: 0.78 }}>{label}</div>
+      <input
+        value={v}
+        type={secret ? "password" : "text"}
+        onChange={(e)=>onChange(e.target.value)}
+        style={{
+          marginTop: 6, width:"100%", height: 34, padding:"0 10px",
+          borderRadius: 12, border:"1px solid rgba(255,255,255,0.18)",
+          background:"rgba(0,0,0,0.28)", color:"#eaf2ff"
+        }}
+      />
+    </div>
+  );
+}
+
+function StatusBar(){
+  return (
+    <div style={{ height: 30, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 12px",
+      background:"#061023", borderTop:"1px solid rgba(255,255,255,0.08)", color:"#cfe0ff", fontSize: 12 }}>
+      <div>Station Status: <span style={{ opacity: 0.85 }}>Ready</span></div>
+      <div style={{ opacity: 0.7 }}>Ports: 8000 / 5173</div>
+    </div>
+  );
+}
+
+const pre: any = {
+  whiteSpace:"pre-wrap",
+  wordBreak:"break-word",
+  background:"rgba(0,0,0,0.35)",
+  border:"1px solid rgba(255,255,255,0.10)",
+  borderRadius: 14,
+  padding: 12,
+  minHeight: 180
+};
+
+const btnPrimary: any = {
+  height: 34, padding:"0 12px", borderRadius: 12,
+  border:"1px solid rgba(74,144,226,0.55)",
+  background:"rgba(74,144,226,0.28)",
+  color:"#eaf2ff", cursor:"pointer", fontWeight: 800
+};
+
+const btnGhost: any = {
+  height: 34, padding:"0 12px", borderRadius: 12,
+  border:"1px solid rgba(255,255,255,0.18)",
+  background:"rgba(0,0,0,0.22)",
+  color:"#eaf2ff", cursor:"pointer", fontWeight: 700
+};
+cat > ~/station_root/patch_fix_app_useeffect.sh <<'BASH'

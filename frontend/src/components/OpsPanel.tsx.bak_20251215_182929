@@ -5,7 +5,6 @@ import { jpost } from "./api";
 type Props = { keys: KeysState };
 
 export default function OpsPanel(p: Props) {
-  const keys: any = (p as any).keys || {};
   const [out, setOut] = useState<string>("Output will appear here.");
 
   function guard(): string | null {
@@ -16,7 +15,7 @@ export default function OpsPanel(p: Props) {
   }
 
   async function run(action: "git_status" | "git_push" | "render_deploy") {
-const g = guard();
+    const g = guard();
     if (g) {
       setOut("Blocked by guard: " + g);
       return;
@@ -38,24 +37,24 @@ const g = guard();
         <div style={{ fontWeight: 700, marginBottom: 8 }}>Ops</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={async () => {
-            const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
+            const base = (p.keys.backendUrl || "").trim();
             const url = (base || "").replace(/\/$/, "") + "/ops/git/status";
-            const res = await postJSON(url, {}, (p.keys.editModeKey || ""));
+            const res = await postJSON(url, {}, p.keys.editKey || "");
             setOut(JSON.stringify(res, null, 2));
           }}>Git Status (Backend)</button>
           <button onClick={async () => {
-            const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
+            const base = (p.keys.backendUrl || "").trim();
             const url = (base || "").replace(/\/$/, "") + "/ops/git/push";
-            const res = await postJSON(url, {}, (p.keys.editModeKey || ""));
+            const res = await postJSON(url, {}, p.keys.editKey || "");
             setOut(JSON.stringify(res, null, 2));
           }}>Stage + Commit + Push (Backend)</button>
           <button onClick={async () => {
-            const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
+            const base = (p.keys.backendUrl || "").trim();
             const url = (base || "").replace(/\/$/, "") + "/ops/render/deploy";
             const res = await postJSON(url, {
               render_api_key: p.keys.renderApiKey || "",
-              render_service_id: (keys.renderServiceId || keys.RENDER_SERVICE_ID || ""),
-            }, (p.keys.editModeKey || ""));
+              render_service_id: p.keys.renderServiceId || "",
+            }, p.keys.editKey || "");
             setOut(JSON.stringify(res, null, 2));
           }}>Trigger Render Deploy</button>
         </div>

@@ -2,6 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useState } from "react";
 import { jpost } from "./api";
 export default function OpsPanel(p) {
+    const keys = p.keys || {};
     const [out, setOut] = useState("Output will appear here.");
     function guard() {
         if (!p.keys.editModeKey?.trim())
@@ -30,22 +31,22 @@ export default function OpsPanel(p) {
         }
     }
     return (_jsxs(_Fragment, { children: [_jsxs("div", { style: { padding: 12, border: "1px solid rgba(0,0,0,0.1)", borderRadius: 12, marginBottom: 12 }, children: [_jsx("div", { style: { fontWeight: 700, marginBottom: 8 }, children: "Ops" }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx("button", { onClick: async () => {
-                                    const base = (p.keys.backendUrl || "").trim();
+                                    const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
                                     const url = (base || "").replace(/\/$/, "") + "/ops/git/status";
-                                    const res = await postJSON(url, {}, p.keys.editKey || "");
+                                    const res = await postJSON(url, {}, (p.keys.editModeKey || ""));
                                     setOut(JSON.stringify(res, null, 2));
                                 }, children: "Git Status (Backend)" }), _jsx("button", { onClick: async () => {
-                                    const base = (p.keys.backendUrl || "").trim();
+                                    const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
                                     const url = (base || "").replace(/\/$/, "") + "/ops/git/push";
-                                    const res = await postJSON(url, {}, p.keys.editKey || "");
+                                    const res = await postJSON(url, {}, (p.keys.editModeKey || ""));
                                     setOut(JSON.stringify(res, null, 2));
                                 }, children: "Stage + Commit + Push (Backend)" }), _jsx("button", { onClick: async () => {
-                                    const base = (p.keys.backendUrl || "").trim();
+                                    const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
                                     const url = (base || "").replace(/\/$/, "") + "/ops/render/deploy";
                                     const res = await postJSON(url, {
                                         render_api_key: p.keys.renderApiKey || "",
-                                        render_service_id: p.keys.renderServiceId || "",
-                                    }, p.keys.editKey || "");
+                                        render_service_id: (keys.renderServiceId || keys.RENDER_SERVICE_ID || ""),
+                                    }, (p.keys.editModeKey || ""));
                                     setOut(JSON.stringify(res, null, 2));
                                 }, children: "Trigger Render Deploy" })] }), _jsx("div", { style: { opacity: 0.7, marginTop: 8, fontSize: 12 }, children: "Uses backend ops endpoints. Requires Edit Mode Key." })] }), _jsxs("div", { className: "panel", style: { height: "100%" }, children: [_jsxs("div", { className: "panelHeader", children: [_jsx("h3", { children: "Ops Console" }), _jsx("span", { children: "Guards enabled" })] }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx("button", { className: "btn", onClick: () => void run("git_status"), children: "Git Status" }), _jsx("button", { className: "btn btnPrimary", onClick: () => void run("git_push"), children: "Stage + Commit + Push" }), _jsx("button", { className: "btn", onClick: () => void run("render_deploy"), children: "Deploy to Render" })] }), _jsx("pre", { style: { marginTop: 10, padding: 12, borderRadius: 14, border: "1px solid rgba(255,255,255,.10)", background: "rgba(0,0,0,.18)", overflow: "auto", height: "calc(100% - 70px)" }, children: out })] })] }));
 }

@@ -26,4 +26,4 @@ def root():
     return {"service": "Dwarf", "status": "up", "docs": "/docs", "openapi": "/openapi.json"}
 
 # Mount the existing ASGI app last so /docs & /openapi.json stay available.
-app.mount("/", inner_app)
+app.mount("/legacy", inner_app)

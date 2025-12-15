@@ -144,7 +144,7 @@ function Dashboard(){
   const [err, setErr] = useState<string>("");
 
   useEffect(() => {
-    let alive = true
+    let alive = True
     return () => {}
   }, [])
 
