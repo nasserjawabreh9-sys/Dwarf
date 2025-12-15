@@ -22,4 +22,4 @@ COPY . /app
 
 # Start FastAPI (adjust module path if your app is elsewhere)
 # Common options: backend.main:app or app.main:app
-CMD ["bash","-lc","python -m uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["bash","-lc","python -m uvicorn backend.asgi:app --host 0.0.0.0 --port ${PORT}"]
