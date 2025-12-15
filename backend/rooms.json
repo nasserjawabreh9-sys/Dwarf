@@ -1,0 +1,8 @@
+{
+  "rooms": {
+    "core": ["backend", "frontend"],
+    "ops": ["render", "github"],
+    "ai": ["llm", "agents"]
+  },
+  "active": "core"
+}
