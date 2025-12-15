@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from ops_routes import router as ops_router
 from fastapi.middleware.cors import CORSMiddleware
 
 # Stable entrypoint for uvicorn: backend.app:app
@@ -20,6 +21,10 @@ if app is None:
 
     
 
+
+
+# --- Ops Router ---
+app.include_router(ops_router)
 # --- CORS (Render + Static Frontend) ---
 app.add_middleware(
     CORSMiddleware,
