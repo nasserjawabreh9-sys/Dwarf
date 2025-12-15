@@ -717,3 +717,24 @@ try:
 except Exception:
     pass
 
+
+# --- Render/Health endpoints (auto-added) ---
+try:
+    from fastapi import Response
+except Exception:
+    Response = None
+
+@app.get("/healthz")
+def healthz():
+    return {"ok": True, "service": "station", "app": "backend.main"}
+
+@app.get("/health")
+def health():
+    return {"ok": True, "service": "station", "app": "backend.main"}
+
+# Optional: make HEAD / return 200 (Render sometimes sends HEAD /)
+@app.head("/")
+def head_root():
+    return None
+# --- end health endpoints ---
+
