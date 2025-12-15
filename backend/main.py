@@ -717,14 +717,12 @@ try:
 except Exception:
     pass
 
-# --- Render/Health endpoints (auto-added safe) ---
-# Works with either FastAPI or Starlette "app"
+# --- Render/Health endpoints ---
 def _health_payload():
-    return {"ok": True, "service": "station", "app": getattr(app, "__class__", type(app)).__name__}
+    return {"ok": True}
 
 try:
-    # FastAPI style
-    if hasattr(app, "get") and callable(getattr(app, "get")):
+    if hasattr(app, "get"):
         @app.get("/healthz")
         def healthz():
             return _health_payload()
@@ -733,42 +731,25 @@ try:
         def health():
             return _health_payload()
 
-        # Render sometimes does HEAD /
-        if hasattr(app, "head") and callable(getattr(app, "head")):
+        if hasattr(app, "head"):
             @app.head("/")
             def head_root():
                 return None
     else:
         raise Exception("not-fastapi")
 except Exception:
-    # Starlette style fallback
-    try:
-        from starlette.responses import JSONResponse, Response
-    except Exception:
-        JSONResponse = None
-        Response = None
+    from starlette.responses import JSONResponse, Response
 
-    def _healthz_starlette(request):
-        payload = _health_payload()
-        if JSONResponse:
-            return JSONResponse(payload)
-        return payload
+    def _healthz(request):
+        return JSONResponse(_health_payload())
 
-    def _health_starlette(request):
-        payload = _health_payload()
-        if JSONResponse:
-            return JSONResponse(payload)
-        return payload
+    def _health(request):
+        return JSONResponse(_health_payload())
 
-    def _head_root_starlette(request):
-        return Response(status_code=200) if Response else None
+    def _head_root(request):
+        return Response(status_code=200)
 
-    # idempotent: ignore if already exists
-    existing = set(getattr(app, "routes", []) or [])
-    # just add routes; Starlette will match them
-    if hasattr(app, "add_route"):
-        app.add_route("/healthz", _healthz_starlette, methods=["GET"])
-        app.add_route("/health", _health_starlette, methods=["GET"])
-        app.add_route("/", _head_root_starlette, methods=["HEAD"])
-
+    app.add_route("/healthz", _healthz, methods=["GET"])
+    app.add_route("/health", _health, methods=["GET"])
+    app.add_route("/", _head_root, methods=["HEAD"])
 # --- end health endpoints ---
