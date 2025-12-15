@@ -794,7 +794,7 @@ try:
             def head_root():
                 return None
     else:
-        raise Exception("not-fastapi")
+        NOT_FASTAPI = True  # auto-patched: do not crash import
 except Exception:
     # Starlette fallback
     from starlette.responses import JSONResponse, Response
