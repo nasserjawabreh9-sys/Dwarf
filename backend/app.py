@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Stable entrypoint for uvicorn: backend.app:app
 # We try to import the real FastAPI "app" from your existing modules.
@@ -17,7 +18,17 @@ if app is None:
     # Fallback minimal app so Render won't 503 while you fix wiring
     app = FastAPI(title="Station Fallback", version="1.0.0")
 
-    @app.get("/")
+    
+
+# --- CORS (Render + Static Frontend) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+@app.get("/")
     def root():
         return {"ok": True, "mode": "fallback", "hint": "Real app not found; check backend/asgi.py or backend/main.py"}
 
