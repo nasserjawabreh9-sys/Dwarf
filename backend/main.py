@@ -753,3 +753,59 @@ except Exception:
     app.add_route("/health", _health, methods=["GET"])
     app.add_route("/", _head_root, methods=["HEAD"])
 # --- end health endpoints ---
+
+# --- FastAPI Wrapper (auto-added) ---
+# Goal:
+# - Expose /docs and /openapi.json reliably (FastAPI)
+# - Keep existing app (Starlette or other) mounted under /legacy
+# - Provide GET / landing page (no more 405)
+try:
+    from fastapi import FastAPI
+    from fastapi.responses import HTMLResponse, PlainTextResponse
+except Exception:
+    FastAPI = None
+    HTMLResponse = None
+    PlainTextResponse = None
+
+def _make_root_html():
+    return """<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Dwarf</title></head>
+<body style="font-family:system-ui;margin:24px">
+  <h1>Dwarf is running</h1>
+  <ul>
+    <li><a href="/docs">/docs</a></li>
+    <li><a href="/openapi.json">/openapi.json</a></li>
+    <li><a href="/healthz">/healthz</a></li>
+    <li><a href="/health">/health</a></li>
+    <li><a href="/legacy">/legacy (mounted original app)</a></li>
+  </ul>
+</body>
+</html>"""
+
+if FastAPI is not None:
+    try:
+        # If current app is already FastAPI, we keep it and only ensure root GET exists.
+        _is_fastapi = app.__class__.__name__.lower().find("fastapi") >= 0
+    except Exception:
+        _is_fastapi = False
+
+    if not _is_fastapi:
+        _orig = app
+        app = FastAPI(title="Dwarf", version="1.0.0")
+        # mount original app under /legacy so nothing is lost
+        try:
+            app.mount("/legacy", _orig)
+        except Exception:
+            pass
+
+    # Ensure root GET exists (avoid 405 on '/')
+    try:
+        @app.get("/", include_in_schema=False)
+        def _root():
+            if HTMLResponse:
+                return HTMLResponse(_make_root_html())
+            return _make_root_html()
+    except Exception:
+        pass
+# --- end FastAPI Wrapper ---
