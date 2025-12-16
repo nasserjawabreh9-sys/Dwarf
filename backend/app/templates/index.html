@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dwarf – Home</title>
+  <style>
+    body{font-family:system-ui;margin:0;background:#06111f;color:#e9f1ff}
+    header{padding:20px 22px;background:linear-gradient(120deg,#0a2a4f,#0b4aa7)}
+    .wrap{max-width:980px;margin:0 auto}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;margin:18px 0}
+    a{color:#a8d1ff;text-decoration:none}
+    .btn{display:inline-block;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.25);margin-right:8px}
+    .muted{opacity:.85}
+    code{background:rgba(0,0,0,.35);padding:2px 6px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1 style="margin:0;">Dwarf Platform</h1>
+      <div class="muted">UI fallback served from FastAPI package.</div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <h2 style="margin-top:0;">Quick Links</h2>
+      <a class="btn" href="/ui">Open Dashboard</a>
+      <a class="btn" href="/docs">API Docs</a>
+      <a class="btn" href="/openapi.json">OpenAPI</a>
+      <a class="btn" href="/healthz">Health</a>
+      <div class="muted" style="margin-top:10px;">
+        This page is a safe fallback even if React frontend is offline.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Service Status</h2>
+      <pre id="s" class="muted">Loading…</pre>
+    </div>
+  </div>
+
+<script>
+fetch("/").then(r=>r.json()).then(j=>{
+  document.getElementById("s").textContent = JSON.stringify(j,null,2);
+}).catch(()=>{ document.getElementById("s").textContent="Status fetch failed."; });
+</script>
+</body>
+</html>

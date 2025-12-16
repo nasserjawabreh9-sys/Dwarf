@@ -1,0 +1,44 @@
+from fastapi import FastAPI
+from backend.routers.ops import router as ops_router
+from backend.engines.dynamo import DynamoLoop
+from backend.engines.rooms import RoomsRegistry
+from starlette.applications import Starlette
+
+# Import the existing app from your codebase.
+# It might be Starlette or FastAPI; we treat it as ASGI.
+try:
+    from backend.main import app as inner_app  # type: ignore
+except Exception as e:
+    inner_app = Starlette()
+    # minimal fallback so container doesn't die
+    # (we still want /healthz to work)
+    # you can inspect logs on Render for the exception details.
+
+app = FastAPI(title="Dwarf API", version="1.0.0")
+
+
+# --- Loop6: Rooms + Dynamo + Ops Router ---
+_rooms = RoomsRegistry()
+_dynamo = DynamoLoop(_rooms)
+ops_router.state.rooms = _rooms
+ops_router.state.dynamo = _dynamo
+app.include_router(ops_router)
+
+@app.get("/api/dynamo/status")
+async def dynamo_public_status():
+    # read-only status endpoint (no key) for quick visibility
+    return {"ok": True, "state": await _dynamo.status()}
+@app.get("/healthz")
+def healthz():
+    return {"ok": True, "via": "fastapi-wrapper"}
+
+@app.get("/health")
+def health():
+    return {"ok": True, "via": "fastapi-wrapper"}
+
+@app.get("/")
+def root():
+    return {"service": "Dwarf", "status": "up", "docs": "/docs", "openapi": "/openapi.json"}
+
+# Mount the existing ASGI app last so /docs & /openapi.json stay available.
+app.mount("/legacy", inner_app)
