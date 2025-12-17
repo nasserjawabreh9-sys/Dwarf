@@ -1,13 +1,16 @@
 version: "1"
 services:
   - type: web
-    name: dwarf-backend
+    name: Dwarf-1
     runtime: docker
     plan: free
     region: virginia
     repo: https://github.com/nasserjawabreh9-sys/Dwarf
-    rootDir: Backend
+
+    # IMPORTANT: your folder is "backend" (lowercase), not "Backend"
+    rootDir: backend
     dockerContext: .
     dockerfilePath: Dockerfile
+
     autoDeploy: false
     healthCheckPath: /healthz
