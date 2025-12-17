@@ -1,31 +1,13 @@
+version: "1"
 services:
   - type: web
-    name: station-backend
-    env: python
-    rootDir: backend
+    name: dwarf-backend
+    runtime: docker
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: backend/ops/run_render.sh
-    envVars:
-      - key: STATION_ENV
-        value: prod
-      - key: STATION_EDIT_KEY
-        value: "1234"
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: STATION_OPENAI_API_KEY
-        sync: false
-      - key: GITHUB_TOKEN
-        sync: false
-      - key: RENDER_API_KEY
-        sync: false
-
-  - type: web
-    name: station-frontend
-    env: static
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_BACKEND_URL
-        sync: false
+    region: virginia
+    repo: https://github.com/nasserjawabreh9-sys/Dwarf
+    rootDir: Backend
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    autoDeploy: false
+    healthCheckPath: /healthz
