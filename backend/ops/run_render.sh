@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 : "${PORT:=8000}"
 : "${STATION_ENV:=prod}"

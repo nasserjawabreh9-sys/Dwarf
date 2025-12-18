@@ -1,0 +1,15 @@
+DB Backups & Retention
+
+1) Local (Termux) backups:
+- Install: pkg install postgresql
+- Run: ./scripts/pg_backup.sh
+- Output: station_root/backups/*.dump (custom format)
+
+2) Render Managed Backups (recommended):
+- Enable/verify backups + retention inside Render dashboard for your Postgres instance.
+- Use managed backups as the primary safety net; use Termux pg_dump as secondary / on-demand export.
+
+3) Suggested retention:
+- Daily: 7-14 days
+- Weekly: 4-8 weeks
+- Monthly: 6-12 months

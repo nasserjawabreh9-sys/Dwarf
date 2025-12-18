@@ -1,0 +1,15 @@
+=== DB URL DOCTOR ===
+ROOT=/data/data/com.termux/files/home/station_root
+ENV_FILE=/data/data/com.termux/files/home/station_root/station_env.sh
+
+Loading station_env.sh ...
+Loaded.
+DATABASE_URL (masked): sqlite:////data/station/db.sqlite3
+
+SCHEME = sqlite
+HOST   = None
+PORT   = None
+DBNAME = data/station/db.sqlite3
+PASS: URL parsed OK
+
+=== CONNECTIVITY TEST ===

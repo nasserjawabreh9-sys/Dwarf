@@ -1,0 +1,7 @@
+=== DB PROVE (PRODUCTION) ===
+ROOT: /data/data/com.termux/files/home/station_root
+RENDER_URL: https://dwarf-jtbs.onrender.com
+
+PASS  Render /healthz = 200
+FAIL  DATABASE_URL missing in environment. Put it in /data/data/com.termux/files/home/station_root/station_env.sh as export DATABASE_URL='...'
+Stop here (cannot prove DB without DATABASE_URL).

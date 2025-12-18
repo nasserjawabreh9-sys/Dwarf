@@ -14,3 +14,5 @@ export STATION_FRONTEND_PORT="5173"
 export STATION_EDIT_MODE_KEY="${STATION_EDIT_MODE_KEY:-1234}"
 
 echo "[station_env] Loaded."
+
+export DATABASE_URL="sqlite://///data/data/com.termux/files/home/station_root/data/station_prod.sqlite"

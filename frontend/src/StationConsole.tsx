@@ -90,7 +90,7 @@ export default function StationConsole() {
             ) : nav === "dashboard" ? (
               <Dashboard keys={keys} onOpenSettings={() => setSettingsOpen(true)} clearSignal={clearSig} />
             ) : nav === "ops" ? (
-              <OpsPanel keys={keys} />
+              <OpsPanel />
             ) : (
               <AboutPanel />
             )}

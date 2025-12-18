@@ -1,20 +1,10 @@
-import os
 import time
-from typing import Callable, Dict, Tuple, Optional
+from typing import Callable, Dict, Tuple
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-def _now() -> float:
-    return time.time()
-
 class ApiKeyGuardMiddleware(BaseHTTPMiddleware):
-    """
-    Protect selected path prefixes with X-API-Key.
-    Configure:
-      STATION_API_KEY (required for protected routes)
-      STATION_PROTECT_PREFIXES="/ops,/admin,/api/ops"  (comma-separated)
-    """
     def __init__(self, app, api_key: str, prefixes: Tuple[str, ...]):
         super().__init__(app)
         self.api_key = api_key
@@ -29,30 +19,21 @@ class ApiKeyGuardMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 class SimpleRateLimitMiddleware(BaseHTTPMiddleware):
-    """
-    Naive in-memory sliding window rate limit per client IP.
-    Configure:
-      RL_WINDOW_SEC=60
-      RL_MAX_REQ=240
-    Notes: Suitable for small/medium workloads; for heavy traffic use a real gateway/WAF.
-    """
     def __init__(self, app, window_sec: int, max_req: int):
         super().__init__(app)
-        self.window_sec = max(5, window_sec)
-        self.max_req = max(30, max_req)
-        self._buckets: Dict[str, Tuple[float, int]] = {}
+        self.window_sec = max(5, int(window_sec))
+        self.max_req = max(30, int(max_req))
+        self._buckets: Dict[str, tuple[float,int]] = {}
 
-    def _client_ip(self, request: Request) -> str:
-        # Render/Proxies: use X-Forwarded-For first
+    def _ip(self, request: Request) -> str:
         xff = request.headers.get("x-forwarded-for")
         if xff:
             return xff.split(",")[0].strip()
-        client = request.client.host if request.client else "unknown"
-        return client
+        return request.client.host if request.client else "unknown"
 
     async def dispatch(self, request: Request, call_next: Callable):
-        ip = self._client_ip(request)
-        t = _now()
+        ip = self._ip(request)
+        t = time.time()
         start, cnt = self._buckets.get(ip, (t, 0))
         if t - start > self.window_sec:
             start, cnt = t, 0
@@ -69,6 +50,5 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         resp.headers.setdefault("X-Frame-Options", "DENY")
         resp.headers.setdefault("Referrer-Policy", "no-referrer")
         resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        # Basic CSP (safe default; relax later if you embed external assets)
         resp.headers.setdefault("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; base-uri 'self'")
         return resp

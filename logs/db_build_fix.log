@@ -1,0 +1,168 @@
+>>> ROOT=/data/data/com.termux/files/home/station_root
+>>> BACK=/data/data/com.termux/files/home/station_root/backend
+No mirror or mirror group selected. You might want to select one by running 'termux-change-repo'
+Checking availability of current mirror:
+[*] https://mirrors.medzik.dev/termux/termux-main: ok
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+Hit:1 https://mirrors.medzik.dev/termux/termux-main stable InRelease
+Reading package lists...
+Building dependency tree...
+Reading state information...
+All packages are up to date.
+No mirror or mirror group selected. You might want to select one by running 'termux-change-repo'
+Checking availability of current mirror:
+[*] https://mirrors.medzik.dev/termux/termux-main: ok
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+Reading package lists...
+Building dependency tree...
+Reading state information...
+python is already the newest version (3.12.12).
+git is already the newest version (2.52.0).
+curl is already the newest version (8.17.0).
+jq is already the newest version (1.8.1-1).
+openssl is already the newest version (1:3.6.0).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+Requirement already satisfied: pip in ./.venv/lib/python3.12/site-packages (25.3)
+Requirement already satisfied: wheel in ./.venv/lib/python3.12/site-packages (0.45.1)
+Requirement already satisfied: setuptools in ./.venv/lib/python3.12/site-packages (80.9.0)
+>>> Installing from /data/data/com.termux/files/home/station_root/backend/requirements.txt
+Collecting fastapi==0.115.0 (from -r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 1))
+  Using cached fastapi-0.115.0-py3-none-any.whl.metadata (27 kB)
+Collecting uvicorn==0.30.6 (from uvicorn[standard]==0.30.6->-r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 2))
+  Using cached uvicorn-0.30.6-py3-none-any.whl.metadata (6.6 kB)
+Collecting pydantic==2.8.2 (from -r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 3))
+  Using cached pydantic-2.8.2-py3-none-any.whl.metadata (125 kB)
+Collecting sqlalchemy==2.0.30 (from sqlalchemy[asyncio]==2.0.30->-r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 4))
+  Using cached SQLAlchemy-2.0.30-py3-none-any.whl.metadata (9.6 kB)
+Collecting asyncpg==0.29.0 (from -r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 5))
+  Using cached asyncpg-0.29.0-cp312-cp312-linux_aarch64.whl
+Collecting alembic==1.13.2 (from -r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 6))
+  Using cached alembic-1.13.2-py3-none-any.whl.metadata (7.4 kB)
+Collecting starlette<0.39.0,>=0.37.2 (from fastapi==0.115.0->-r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 1))
+  Using cached starlette-0.38.6-py3-none-any.whl.metadata (6.0 kB)
+Collecting typing-extensions>=4.8.0 (from fastapi==0.115.0->-r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 1))
+  Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting annotated-types>=0.4.0 (from pydantic==2.8.2->-r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 3))
+  Using cached annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.20.1 (from pydantic==2.8.2->-r /data/data/com.termux/files/home/station_root/backend/requirements.txt (line 3))
+  Using cached pydantic_core-2.20.1.tar.gz (388 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'error'
+  error: subprocess-exited-with-error
+  
+  × installing build dependencies for pydantic-core did not run successfully.
+  │ exit code: 1
+  ╰─> [28 lines of output]
+      Collecting maturin<2,>=1
+        Using cached maturin-1.10.2.tar.gz (217 kB)
+        Installing build dependencies: started
+        Installing build dependencies: finished with status 'done'
+        Getting requirements to build wheel: started
+        Getting requirements to build wheel: finished with status 'done'
+        Installing backend dependencies: started
+        Installing backend dependencies: finished with status 'done'
+        Preparing metadata (pyproject.toml): started
+        Preparing metadata (pyproject.toml): finished with status 'error'
+        error: subprocess-exited-with-error
+      
+        × Preparing metadata (pyproject.toml) did not run successfully.
+        │ exit code: 1
+        ╰─> [3 lines of output]
+            Rust not found, installing into a temporary directory
+            Python reports SOABI: cpython-312
+            Unsupported platform: 312
+            [end of output]
+      
+        note: This error originates from a subprocess, and is likely not a problem with pip.
+      error: metadata-generation-failed
+      
+      × Encountered error while generating package metadata.
+      ╰─> maturin
+      
+      note: This is an issue with the package mentioned above, not pip.
+      hint: See above for details.
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+ERROR: Failed to build 'pydantic-core' when installing build dependencies for pydantic-core
+Collecting fastapi>=0.110
+  Downloading fastapi-0.124.4-py3-none-any.whl.metadata (30 kB)
+Collecting uvicorn>=0.29 (from uvicorn[standard]>=0.29)
+  Downloading uvicorn-0.38.0-py3-none-any.whl.metadata (6.8 kB)
+Collecting SQLAlchemy>=2.0
+  Using cached sqlalchemy-2.0.45-py3-none-any.whl.metadata (9.5 kB)
+Collecting pydantic>=2.6
+  Using cached pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+Collecting python-dotenv>=1.0
+  Using cached python_dotenv-1.2.1-py3-none-any.whl.metadata (25 kB)
+Collecting psycopg2-binary>=2.9
+  Downloading psycopg2-binary-2.9.11.tar.gz (379 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting asyncpg>=0.29
+  Using cached asyncpg-0.31.0-cp312-cp312-linux_aarch64.whl
+Collecting alembic>=1.13
+  Using cached alembic-1.17.2-py3-none-any.whl.metadata (7.2 kB)
+Collecting starlette<0.51.0,>=0.40.0 (from fastapi>=0.110)
+  Downloading starlette-0.50.0-py3-none-any.whl.metadata (6.3 kB)
+Collecting typing-extensions>=4.8.0 (from fastapi>=0.110)
+  Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting annotated-doc>=0.0.2 (from fastapi>=0.110)
+  Downloading annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
+Collecting annotated-types>=0.6.0 (from pydantic>=2.6)
+  Using cached annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.41.5 (from pydantic>=2.6)
+  Downloading pydantic_core-2.41.5.tar.gz (460 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'error'
+  error: subprocess-exited-with-error
+  
+  × installing build dependencies for pydantic-core did not run successfully.
+  │ exit code: 1
+  ╰─> [28 lines of output]
+      Collecting maturin<2,>=1.9.4
+        Using cached maturin-1.10.2.tar.gz (217 kB)
+        Installing build dependencies: started
+        Installing build dependencies: finished with status 'done'
+        Getting requirements to build wheel: started
+        Getting requirements to build wheel: finished with status 'done'
+        Installing backend dependencies: started
+        Installing backend dependencies: finished with status 'done'
+        Preparing metadata (pyproject.toml): started
+        Preparing metadata (pyproject.toml): finished with status 'error'
+        error: subprocess-exited-with-error
+      
+        × Preparing metadata (pyproject.toml) did not run successfully.
+        │ exit code: 1
+        ╰─> [3 lines of output]
+            Rust not found, installing into a temporary directory
+            Python reports SOABI: cpython-312
+            Unsupported platform: 312
+            [end of output]
+      
+        note: This error originates from a subprocess, and is likely not a problem with pip.
+      error: metadata-generation-failed
+      
+      × Encountered error while generating package metadata.
+      ╰─> maturin
+      
+      note: This is an issue with the package mentioned above, not pip.
+      hint: See above for details.
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+ERROR: Failed to build 'pydantic-core' when installing build dependencies for pydantic-core
+>>> ENV CHECK
+DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DBNAME
+Parsed DATABASE_URL: postgres://USER:PASSWORD@HOST:5432/DBNAME
+Note: prefer postgresql:// (some libs warn).
+psycopg2 connect FAILED: ModuleNotFoundError("No module named 'psycopg2'")
+asyncpg connect FAILED: ModuleNotFoundError("No module named 'asyncpg'")

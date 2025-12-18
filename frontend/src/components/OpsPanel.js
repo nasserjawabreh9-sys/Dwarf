@@ -1,70 +1,139 @@
-import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import { useState } from "react";
-import { jpost } from "./api";
-export default function OpsPanel(p) {
-    const keys = p.keys || {};
-    const [out, setOut] = useState("Output will appear here.");
-    function guard() {
-        if (!p.keys.editModeKey?.trim())
-            return "Edit Mode Key missing";
-        if (!p.keys.githubToken?.trim())
-            return "GitHub token missing";
-        if (!p.keys.githubRepo?.trim())
-            return "GitHub repo missing (owner/repo)";
-        return null;
-    }
-    async function run(action) {
-        const g = guard();
-        if (g) {
-            setOut("Blocked by guard: " + g);
-            return;
-        }
-        try {
-            const r = await jpost(`/ops/${action}`, {
-                edit_key: p.keys.editModeKey,
-                keys: p.keys,
-            });
-            setOut(JSON.stringify(r, null, 2));
-        }
-        catch (e) {
-            setOut("[stub] backend endpoint not available.\n" + String(e?.message || e));
-        }
-    }
-    return (_jsxs(_Fragment, { children: [_jsxs("div", { style: { padding: 12, border: "1px solid rgba(0,0,0,0.1)", borderRadius: 12, marginBottom: 12 }, children: [_jsx("div", { style: { fontWeight: 700, marginBottom: 8 }, children: "Ops" }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx("button", { onClick: async () => {
-                                    const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
-                                    const url = (base || "").replace(/\/$/, "") + "/ops/git/status";
-                                    const res = await postJSON(url, {}, (p.keys.editModeKey || ""));
-                                    setOut(JSON.stringify(res, null, 2));
-                                }, children: "Git Status (Backend)" }), _jsx("button", { onClick: async () => {
-                                    const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
-                                    const url = (base || "").replace(/\/$/, "") + "/ops/git/push";
-                                    const res = await postJSON(url, {}, (p.keys.editModeKey || ""));
-                                    setOut(JSON.stringify(res, null, 2));
-                                }, children: "Stage + Commit + Push (Backend)" }), _jsx("button", { onClick: async () => {
-                                    const base = ((keys.backendUrl || keys.BACKEND_URL || "").trim());
-                                    const url = (base || "").replace(/\/$/, "") + "/ops/render/deploy";
-                                    const res = await postJSON(url, {
-                                        render_api_key: p.keys.renderApiKey || "",
-                                        render_service_id: (keys.renderServiceId || keys.RENDER_SERVICE_ID || ""),
-                                    }, (p.keys.editModeKey || ""));
-                                    setOut(JSON.stringify(res, null, 2));
-                                }, children: "Trigger Render Deploy" })] }), _jsx("div", { style: { opacity: 0.7, marginTop: 8, fontSize: 12 }, children: "Uses backend ops endpoints. Requires Edit Mode Key." })] }), _jsxs("div", { className: "panel", style: { height: "100%" }, children: [_jsxs("div", { className: "panelHeader", children: [_jsx("h3", { children: "Ops Console" }), _jsx("span", { children: "Guards enabled" })] }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx("button", { className: "btn", onClick: () => void run("git_status"), children: "Git Status" }), _jsx("button", { className: "btn btnPrimary", onClick: () => void run("git_push"), children: "Stage + Commit + Push" }), _jsx("button", { className: "btn", onClick: () => void run("render_deploy"), children: "Deploy to Render" })] }), _jsx("pre", { style: { marginTop: 10, padding: 12, borderRadius: 14, border: "1px solid rgba(255,255,255,.10)", background: "rgba(0,0,0,.18)", overflow: "auto", height: "calc(100% - 70px)" }, children: out })] })] }));
-}
-// --- Station Ops helpers (auto-added) ---
-async function postJSON(url, body, editKey) {
-    const r = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "x-edit-key": editKey || "",
-        },
-        body: JSON.stringify(body || {}),
-    });
-    const t = await r.text();
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useEffect, useMemo, useState } from "react";
+function lsGet(k, fallback = "") {
     try {
-        return { ok: r.ok, status: r.status, json: JSON.parse(t) };
+        return localStorage.getItem(k) || fallback;
     }
     catch {
-        return { ok: r.ok, status: r.status, text: t };
+        return fallback;
     }
+}
+function lsSet(k, v) {
+    try {
+        localStorage.setItem(k, v);
+    }
+    catch { }
+}
+async function fetchJson(url, editKey, init) {
+    const headers = {
+        "Accept": "application/json",
+        ...init?.headers,
+    };
+    if (editKey)
+        headers["X-Edit-Key"] = editKey;
+    const res = await fetch(url, { ...init, headers });
+    const ct = res.headers.get("content-type") || "";
+    const text = await res.text();
+    let body = text;
+    if (ct.includes("application/json")) {
+        try {
+            body = JSON.parse(text);
+        }
+        catch {
+            body = { raw: text };
+        }
+    }
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}: ${typeof body === "string" ? body : JSON.stringify(body)}`);
+    }
+    return body;
+}
+export default function OpsPanel() {
+    // Runtime-configurable (NOT build-time), works on Render static site
+    const defaultBackend = lsGet("STATION_BACKEND_URL") ||
+        import.meta?.env?.VITE_BACKEND_URL ||
+        "https://station-backend-xdfe.onrender.com";
+    const [backendUrl, setBackendUrl] = useState(defaultBackend);
+    const [editKey, setEditKey] = useState(lsGet("STATION_EDIT_KEY", "1234"));
+    const [out, setOut] = useState("");
+    const [busy, setBusy] = useState(false);
+    const api = useMemo(() => {
+        const base = (backendUrl || "").trim().replace(/\/+$/, "");
+        return {
+            base,
+            healthz: `${base}/healthz`,
+            docs: `${base}/docs`,
+            rooms: `${base}/api/ops/rooms`,
+            roomRun: (rid) => `${base}/api/ops/rooms/${encodeURIComponent(rid)}/run`,
+            dynamoStart: `${base}/api/ops/dynamo/start`,
+            dynamoStop: `${base}/api/ops/dynamo/stop`,
+            dynamoStatus: `${base}/api/ops/dynamo/status`,
+            logsTail: `${base}/api/ops/logs/tail`,
+        };
+    }, [backendUrl]);
+    // One-time seed: if STATION_BACKEND_URL not set, seed it to default backend
+    useEffect(() => {
+        try {
+            const k = "STATION_BACKEND_URL";
+            const cur = localStorage.getItem(k);
+            if (!cur || !cur.trim()) {
+                localStorage.setItem(k, "https://station-backend-xdfe.onrender.com");
+            }
+        }
+        catch { }
+    }, []);
+    useEffect(() => {
+        lsSet("STATION_BACKEND_URL", backendUrl);
+    }, [backendUrl]);
+    useEffect(() => {
+        lsSet("STATION_EDIT_KEY", editKey);
+    }, [editKey]);
+    async function run(label, fn) {
+        setBusy(true);
+        setOut(`>>> ${label}\n`);
+        try {
+            const data = await fn();
+            setOut((prev) => prev + JSON.stringify(data, null, 2) + "\n");
+        }
+        catch (e) {
+            setOut((prev) => prev + `ERROR: ${e?.message || String(e)}\n`);
+        }
+        finally {
+            setBusy(false);
+        }
+    }
+    async function getRooms() {
+        return fetchJson(api.rooms, editKey);
+    }
+    async function runRoom(rid) {
+        return fetchJson(api.roomRun(rid), editKey, { method: "POST" });
+    }
+    async function dynStart() {
+        return fetchJson(api.dynamoStart, editKey, { method: "POST" });
+    }
+    async function dynStop() {
+        return fetchJson(api.dynamoStop, editKey, { method: "POST" });
+    }
+    async function dynStatus() {
+        return fetchJson(api.dynamoStatus, editKey);
+    }
+    async function tailLogs() {
+        return fetchJson(api.logsTail, editKey);
+    }
+    return (_jsxs("div", { style: { border: "1px solid #233", borderRadius: 12, padding: 12, marginTop: 12 }, children: [_jsxs("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }, children: [_jsxs("div", { style: { minWidth: 240, flex: 1 }, children: [_jsx("div", { style: { fontSize: 12, opacity: 0.8 }, children: "Backend URL" }), _jsx("input", { value: backendUrl, onChange: (e) => setBackendUrl(e.target.value), placeholder: "https://station-backend-xdfe.onrender.com", style: { width: "100%", padding: 10, borderRadius: 10, border: "1px solid #345", background: "#0b1220", color: "#dbe7ff" } }), _jsxs("div", { style: { fontSize: 12, opacity: 0.8, marginTop: 6 }, children: [_jsx("a", { href: api.docs, target: "_blank", rel: "noreferrer", style: { color: "#9cc2ff" }, children: "Open /docs" }), "  |  ", _jsx("a", { href: api.healthz, target: "_blank", rel: "noreferrer", style: { color: "#9cc2ff" }, children: "Open /healthz" })] })] }), _jsxs("div", { style: { minWidth: 160 }, children: [_jsx("div", { style: { fontSize: 12, opacity: 0.8 }, children: "Edit Key (X-Edit-Key)" }), _jsx("input", { value: editKey, onChange: (e) => setEditKey(e.target.value), placeholder: "1234", style: { width: 220, padding: 10, borderRadius: 10, border: "1px solid #345", background: "#0b1220", color: "#dbe7ff" } })] }), _jsxs("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: [_jsx("button", { disabled: busy, onClick: () => run("BACKEND /healthz", () => fetchJson(api.healthz, "")), children: "Healthz" }), _jsx("button", { disabled: busy, onClick: () => run("DYNAMO status", dynStatus), children: "Dynamo Status" }), _jsx("button", { disabled: busy, onClick: () => run("DYNAMO start", dynStart), children: "Dynamo Start" }), _jsx("button", { disabled: busy, onClick: () => run("DYNAMO stop", dynStop), children: "Dynamo Stop" }), _jsx("button", { disabled: busy, onClick: () => run("ROOMS list", getRooms), children: "Rooms" }), _jsx("button", { disabled: busy, onClick: async () => {
+                                    const rid = prompt("Room ID to run (example: room-1)") || "";
+                                    if (!rid.trim())
+                                        return;
+                                    run(`ROOM run: ${rid}`, () => runRoom(rid.trim()));
+                                }, children: "Run Room" }), _jsx("button", { disabled: busy, onClick: () => run("LOGS tail", tailLogs), children: "Logs Tail" }), _jsx("button", { disabled: busy, onClick: () => setOut(""), children: "Clear" })] })] }), _jsx("pre", { style: {
+                    marginTop: 12,
+                    padding: 12,
+                    borderRadius: 12,
+                    border: "1px solid #234",
+                    background: "#08101d",
+                    color: "#dbe7ff",
+                    maxHeight: 360,
+                    overflow: "auto",
+                    whiteSpace: "pre-wrap"
+                }, children: out || "Output will appear here..." }), _jsx("style", { children: `
+        button{
+          padding:10px 12px;
+          border-radius:10px;
+          border:1px solid #345;
+          background:#0b1220;
+          color:#dbe7ff;
+          cursor:pointer;
+        }
+        button:disabled{opacity:.5;cursor:not-allowed}
+      ` })] }));
 }
