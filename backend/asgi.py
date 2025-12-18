@@ -1,1 +1,1 @@
-from backend.app_fixed.main import app  # noqa
+from app.main import app
