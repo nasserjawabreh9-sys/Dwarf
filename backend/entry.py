@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from backend.routers.db_ping import router as db_router
 
 # Stable entrypoint for uvicorn: backend.entry:app
 # Try to import the real app from common locations in your repo.
@@ -25,6 +26,7 @@ for mod_path in CANDIDATES:
 if app is None:
     # Fallback minimal app to keep service alive (prevents 503 during boot)
     app = FastAPI(title="Station Fallback", version="1.0.0")
+app.include_router(db_router)
 
     @app.get("/")
     def root():
